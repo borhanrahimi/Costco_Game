@@ -8,6 +8,7 @@ window.Game = {
   player: null,
   characters: [],
   stations: [],
+  vehicles: [],
 
   setMap(def)       { this.map = def; },
   setPlayer(def)    { this.player = def; },
@@ -17,6 +18,8 @@ window.Game = {
   },
   // Things you can walk up to and use, like the food court counter (see stations/).
   addStation(def)   { this.stations.push(def); },
+  // Things Preston can hop on and drive, like the forklift (see vehicles/).
+  addVehicle(def)   { this.vehicles.push(def); },
 };
 
 // Colors you can use in a look. Index 0 is the first one.

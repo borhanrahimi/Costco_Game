@@ -226,6 +226,82 @@ window.Sprites = (() => {
     lines.forEach((l, i) => g.fillText(l, Math.round(x), by + 5 + lh/2 + i * lh + 1));
   }
 
+  // Forklift around a ground point (x, y), drawn in two layers so the driver
+  // sits between them: "back" goes under the driver, "front" over his legs.
+  // lit = the red light on the roof is flashing on (only while it's being driven).
+  function forklift(g, x, y, dir, layer, lit = false){
+    x = Math.round(x); y = Math.round(y);
+    const R = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(a, b, w, h); };
+    const Y = "#f2b33d", YL = "#ffd27a", YD = "#d39a2a", YDD = "#a8741a", STEEL = "#3a3f48", FORK = "#8d939c", TIRE = "#17181c";
+    const wheel = (cx, cy) => { g.fillStyle = TIRE; g.beginPath(); g.arc(cx, cy, 6, 0, Math.PI*2); g.fill(); R(cx - 2, cy - 2, 4, 4, "#6b717b"); };
+    const roof = (a, w) => {
+      R(a, y - 66, w, 5, STEEL); R(a, y - 66, w, 1, "#59606d"); for (let i = a + 6; i < a + w - 3; i += 6) R(i, y - 65, 1, 3, "#23272e");
+      const bx = a + Math.floor(w / 2) - 3;                                   // red warning light on top
+      if (lit){ g.fillStyle = "rgba(255,60,48,.35)"; g.beginPath(); g.arc(bx + 3, y - 73, 11, 0, Math.PI*2); g.fill(); }
+      R(bx - 1, y - 69, 8, 3, "#23272e");
+      R(bx, y - 76, 6, 7, lit ? "#ff3b30" : "#7a201c"); R(bx + 1, y - 75, 2, 2, lit ? "#ffd0c8" : "#a8443c");
+    };
+    if (dir === "left" || dir === "right"){
+      g.save();
+      if (dir === "left"){ g.translate(x * 2, 0); g.scale(-1, 1); }
+      if (layer === "back"){
+        R(x - 28, y - 3, 74, 7, "rgba(0,0,0,.2)");
+        R(x - 17, y - 62, 3, 46, STEEL); R(x + 12, y - 62, 3, 46, STEEL);          // far guard posts
+        R(x - 28, y - 30, 14, 28, YD); R(x - 28, y - 30, 14, 3, Y);              // counterweight
+        R(x - 16, y - 24, 36, 22, Y); R(x - 16, y - 24, 36, 3, YL);              // body
+        R(x - 11, y - 32, 10, 12, "#22252b");                                     // seat back
+        R(x + 20, y - 70, 6, 70, STEEL); R(x + 21, y - 70, 1, 70, "#59606d");    // mast
+        R(x + 26, y - 22, 3, 21, "#2c3038"); R(x + 26, y - 4, 22, 3, FORK);      // carriage + forks
+        R(x + 26, y - 1, 22, 1, "#5d636b");
+      } else {
+        R(x - 20, y - 18, 40, 15, Y); R(x - 20, y - 18, 40, 2, YL); R(x - 20, y - 5, 40, 2, YDD);
+        R(x - 6, y - 15, 14, 3, "#2a2d33");                                       // step
+        R(x - 27, y - 24, 3, 4, "#e2453a");                                       // tail light
+        wheel(x - 15, y - 2); wheel(x + 13, y - 2);
+        R(x - 17, y - 62, 3, 44, "#2c3038"); R(x + 12, y - 62, 3, 44, "#2c3038"); // near guard posts
+        roof(x - 19, 36);
+        R(x + 17, y - 30, 3, 8, "#2c3038"); R(x + 15, y - 34, 6, 4, "#16171c");  // steering wheel
+      }
+      g.restore();
+      return;
+    }
+    const up = dir === "up";
+    if (layer === "back"){
+      R(x - 24, y - 2, 48, 7, "rgba(0,0,0,.2)");
+      if (up){
+        R(x - 16, y - 76, 5, 46, STEEL); R(x + 11, y - 76, 5, 46, STEEL);       // mast (ahead, behind driver)
+        R(x - 16, y - 76, 32, 4, STEEL); R(x - 16, y - 56, 32, 3, STEEL);
+        R(x - 13, y - 50, 5, 18, FORK); R(x + 8, y - 50, 5, 18, FORK);           // forks
+        R(x - 13, y - 50, 5, 2, "#b9bfc7"); R(x + 8, y - 50, 5, 2, "#b9bfc7");
+        wheel(x - 20, y - 28); wheel(x + 20, y - 28);
+        R(x - 18, y - 62, 3, 30, "#2c3038"); R(x + 15, y - 62, 3, 30, "#2c3038"); // front guard posts
+        R(x - 19, y - 34, 38, 34, Y); R(x - 19, y - 34, 38, 3, YL);
+        R(x - 9, y - 30, 18, 12, "#22252b");                                      // seat
+      } else {
+        R(x - 18, y - 62, 3, 30, "#2c3038"); R(x + 15, y - 62, 3, 30, "#2c3038"); // rear guard posts
+        wheel(x - 20, y - 28); wheel(x + 20, y - 28);
+        R(x - 19, y - 36, 38, 14, YD); R(x - 19, y - 36, 38, 3, Y);              // counterweight
+        R(x - 19, y - 24, 38, 26, Y); R(x - 19, y - 24, 38, 2, YL);
+        R(x - 9, y - 32, 18, 12, "#22252b");                                      // seat back
+      }
+    } else if (up){
+      R(x - 19, y - 20, 38, 22, YD); R(x - 19, y - 20, 38, 3, Y); R(x - 19, y - 1, 38, 3, YDD);   // counterweight
+      R(x - 17, y - 14, 4, 3, "#e2453a"); R(x + 13, y - 14, 4, 3, "#e2453a");                      // tail lights
+      wheel(x - 20, y - 3); wheel(x + 20, y - 3);
+      R(x - 18, y - 62, 3, 44, "#2c3038"); R(x + 15, y - 62, 3, 44, "#2c3038");                    // rear guard posts
+      roof(x - 20, 40);
+    } else {
+      R(x - 19, y - 16, 38, 14, Y); R(x - 19, y - 16, 38, 2, YL); R(x - 19, y - 4, 38, 2, YDD);   // dash
+      R(x - 6, y - 20, 12, 3, "#16171c");                                                          // steering wheel
+      wheel(x - 20, y - 3); wheel(x + 20, y - 3);
+      R(x - 18, y - 70, 5, 72, STEEL); R(x + 13, y - 70, 5, 72, STEEL); R(x - 18, y - 70, 36, 4, STEEL);   // mast in front
+      R(x - 18, y - 2, 36, 5, "#2c3038");                                                          // carriage
+      R(x - 13, y + 2, 5, 16, FORK); R(x + 8, y + 2, 5, 16, FORK);                                // forks toward camera
+      R(x - 13, y + 16, 5, 2, "#b9bfc7"); R(x + 8, y + 16, 5, 2, "#b9bfc7");
+      roof(x - 20, 40);
+    }
+  }
+
   function steam(g, x, y, t){
     x = Math.round(x); y = Math.round(y);
     for (let i = 0; i < 2; i++){
@@ -339,5 +415,5 @@ window.Sprites = (() => {
     }
   }
 
-  return { person, nameTag, thought, steam, sign, hotdog, energyDrink, W, H };
+  return { person, nameTag, thought, forklift, steam, sign, hotdog, energyDrink, W, H };
 })();

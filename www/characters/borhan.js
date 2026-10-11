@@ -28,7 +28,7 @@ Game.addCharacter({
     { who: "Preston", text: "Bald dude!!" },
     { who: "Borhan", text: "TORTA LOVER!!" },
     { who: "Preston", text: "I love Tortas! I can eat torta everyday! " },
-    { who: "Borhan", text: "yeah! I can tell! I can smell fish and torta around the warhouse!" },
+    { who: "Borhan", text: "Yeah! I can tell! I can smell fish and torta around the warhouse!" },
     { who: "Preston", text: "THIS NIGGA!" },
   ],
 

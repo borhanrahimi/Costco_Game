@@ -68,6 +68,9 @@
   // Preston's random thoughts: a bubble over his head every so often.
   const THOUGHT_SHOW = 4, thoughtGap = () => 8 + Math.random() * 10;
   let thought = null, thoughtT = 5, lastThought = -1;
+  // Vehicles Preston can drive. While driving, the forklift rides on the player.
+  const OPPOSITE = { up: "down", down: "up", left: "right", right: "left" };
+  let vehicles = [], driving = null, reversing = false, beepT = 0;
   const cam = { x: 0, y: 0 };
 
   function resetGame(saved = null){
@@ -93,6 +96,11 @@
     });
     hotdogs = 0; boostT = 0; boostKind = null; $("dogStat").hidden = true;
     thought = null; thoughtT = 5;
+    vehicles = Game.vehicles.map(v => {
+      const pos = v.position || { x: 2, y: 2 };
+      return { ...v, px: (pos.x + .5) * TS, py: (pos.y + 1) * TS - 2, dir: pos.facing || "up" };
+    });
+    driving = null; reversing = false;
     talkedCount = 0; doneShown = false; talk.who = null;
     if (saved){
       const sx = Number(saved.player?.x), sy = Number(saved.player?.y);
@@ -114,13 +122,16 @@
 
   // ---------------------------------------------------------------- collision
   const HB = 9;   // half the width of someone's feet
+  const FB = 15;  // half the width of a forklift
   function blocked(x, y, self){
-    const l = x - HB, r = x + HB, t = y - 12, b = y;
+    const hb = self === player && driving ? FB : HB;
+    const l = x - hb, r = x + hb, t = y - 12, b = y;
     for (let ty = Math.floor(t/TS); ty <= Math.floor((b - .01)/TS); ty++)
       for (let tx = Math.floor(l/TS); tx <= Math.floor((r - .01)/TS); tx++)
         if (isSolid(tx, ty)) return true;
-    const others = self === player ? npcs : [{ px: player.x, py: player.y }, ...npcs.filter(n => n !== self)];
-    for (const o of others) if (l < o.px + HB && r > o.px - HB && t < o.py && b > o.py - 12) return true;
+    const others = self === player ? npcs : [{ px: player.x, py: player.y, hb: driving ? FB : HB }, ...npcs.filter(n => n !== self)];
+    for (const o of others){ const ob = o.hb || HB; if (l < o.px + ob && r > o.px - ob && t < o.py && b > o.py - 12) return true; }
+    for (const v of vehicles) if (v !== driving && l < v.px + FB && r > v.px - FB && t < v.py && b > v.py - 12) return true;
     return false;
   }
   const getX = e => e === player ? e.x : e.px, getY = e => e === player ? e.y : e.py;
@@ -141,6 +152,7 @@
 
   function nearestNpc(){
     let best = null, bd = TALK_RANGE;
+    if (driving) return null;
     for (const n of [...npcs, ...stations]){
       const d = Math.hypot(n.px - player.x, n.py - player.y);
       if (d < bd){ bd = d; best = n; }
@@ -175,7 +187,10 @@
       if (talk.idx < talk.who.lines.length - 1){ talk.idx++; showLine(); Sound.nextLine(); return; }
       closeTalk(); return;
     }
-    const n = nearestNpc(); if (!n) return;
+    if (driving){ hopOff(); return; }
+    const n = nearestNpc(), v = nearestVehicle();
+    if (v && (!n || Math.hypot(v.px - player.x, v.py - player.y) < Math.hypot(n.px - player.x, n.py - player.y))){ hopOn(v); return; }
+    if (!n) return;
     talk.who = n; talk.idx = 0;
     faceToward(n, player.x, player.y);
     faceToward(player, n.px, n.py);
@@ -185,6 +200,29 @@
     Sound.talkStart();
     if (!n.talked && !n.isStation){ n.talked = true; talkedCount++; updateHud(); }
     saveProgress();
+  }
+
+  function nearestVehicle(){
+    if (driving) return null;
+    let best = null, bd = TALK_RANGE + 8;
+    for (const v of vehicles){ const d = Math.hypot(v.px - player.x, v.py - player.y); if (d < bd){ bd = d; best = v; } }
+    return best;
+  }
+  function hopOn(v){
+    driving = v; reversing = false;
+    player.x = v.px; player.y = v.py; player.dir = v.dir;
+    toast(`${P.name} hops on the ${v.name.toLowerCase()}. Press E / TALK again to hop off.`);
+  }
+  function hopOff(){
+    const v = driving, gap = FB + HB + 2;
+    // Step off to the side if there's room, otherwise out the back or front.
+    const spots = [[-gap, 0], [gap, 0], [0, 16], [0, -24]];
+    driving = null;
+    const spot = spots.find(([dx, dy]) => !blocked(player.x + dx, player.y + dy, player));
+    if (!spot){ driving = v; toast("No room to hop off here!"); return; }
+    v.px = player.x; v.py = player.y; v.dir = player.dir;
+    player.x += spot[0]; player.y += spot[1];
+    reversing = false;
   }
 
   let toastTimer = null;
@@ -229,10 +267,13 @@
     if (m > 1){ mx /= m; my /= m; }
     player.moving = m > 0.05;
     if (player.moving){
-      player.dir = Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "right" : "left") : (my > 0 ? "down" : "up");
+      const dir = Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "right" : "left") : (my > 0 ? "down" : "up");
+      // On the forklift, pushing opposite the forks backs it up instead of turning around.
+      reversing = !!driving && dir === OPPOSITE[player.dir];
+      if (!reversing) player.dir = dir;
       const bx = player.x, by = player.y;
       const boost = boostT > 0 ? (boostKind === "energy" ? 3 : 1.6) : 1;
-      const spd = SPEED * boost;
+      const spd = SPEED * boost * (driving ? (driving.speed || 1.5) * (reversing ? .6 : 1) : 1);
       moveEntity(player, mx*spd, my*spd, dt);
       player.anim += Math.hypot(player.x - bx, player.y - by);
     }
@@ -246,6 +287,11 @@
         if (thoughts.length > 1 && i === lastThought) i = (i + 1) % thoughts.length;
         lastThought = i; thought = thoughts[i]; thoughtT = THOUGHT_SHOW;
       }
+    }
+    if (driving){
+      driving.px = player.x; driving.py = player.y; driving.dir = player.dir;
+      if (player.moving){ if ((beepT -= dt) <= 0){ Sound.backupBeep(); beepT = .5; } }
+      else beepT = 0;
     }
     if (boostT > 0){ boostT -= dt; if (boostT <= 0){ boostT = 0; boostKind = null; } }
     for (const n of npcs){
@@ -349,6 +395,7 @@
       list.push({ k: by, prop: p });
     }
     for (const n of npcs) list.push({ k: n.py, npc: n });
+    for (const v of vehicles) if (v !== driving) list.push({ k: v.py, veh: v });
     list.push({ k: player.y, pl: true });
     list.sort((a, b) => a.k - b.k || (a.npc || a.pl ? 1 : 0) - (b.npc || b.pl ? 1 : 0));
 
@@ -367,16 +414,15 @@
           Sprites.person(ctx, e.px + Math.round(Math.sin(t*60)*2), e.py, e.dir, f, { ...e.look, skin: "#e0453a" });
           Sprites.steam(ctx, e.px, e.py, t);
         } else Sprites.person(ctx, e.px, e.py, e.dir, f, e.look);
-      } else {
-        const activeLook = boostKind === "energy" && boostT > 0 ? { ...playerLook, bulky: true } : playerLook;
-        Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, activeLook);
-      }
+      } else if (it.veh){
+        Sprites.forklift(ctx, it.veh.px, it.veh.py, it.veh.dir, "back");
+        Sprites.forklift(ctx, it.veh.px, it.veh.py, it.veh.dir, "front");
+      } else drawPlayer(t);
     }
 
     // 3) Preston shows through anything in front of him (faint outline)
     ctx.globalAlpha = .35;
-    const activeLook = boostKind === "energy" && boostT > 0 ? { ...playerLook, bulky: true } : playerLook;
-    Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, activeLook);
+    drawPlayer(t);
     ctx.globalAlpha = 1;
 
     // 4) hanging signs, talk markers and name tags on top
@@ -411,8 +457,24 @@
       }
       if (n.nameTag) Sprites.nameTag(ctx, n.name.toUpperCase(), x, y - 26);
     }
-    if (thought) Sprites.thought(ctx, thought, Math.round(player.x), Math.round(player.y) - 54);
+    const nearV = state === "play" && !talk.who ? nearestVehicle() : null;
+    if (nearV && !nearestNpc()) Sprites.nameTag(ctx, "HOP ON", Math.round(nearV.px), Math.round(nearV.py) - 86, "#c68a1f");
+    if (thought) Sprites.thought(ctx, thought, Math.round(player.x), Math.round(player.y) - (driving ? 72 : 54));
     ctx.restore();
+  }
+
+  function drawPlayer(t){
+    const look = boostKind === "energy" && boostT > 0 ? { ...playerLook, bulky: true } : playerLook;
+    if (!driving){
+      Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, look);
+      return;
+    }
+    // Forklift, seated Preston, then the front of the forklift with its flashing light.
+    const x = Math.round(player.x), y = Math.round(player.y);
+    const side = player.dir === "right" ? -3 : player.dir === "left" ? 3 : 0;
+    Sprites.forklift(ctx, x, y, player.dir, "back");
+    Sprites.person(ctx, x + side, y - 8, player.dir, 0, look);
+    Sprites.forklift(ctx, x, y, player.dir, "front", Math.floor(t * 4) % 2 === 0);
   }
 
   // ---------------------------------------------------------------- full map screen

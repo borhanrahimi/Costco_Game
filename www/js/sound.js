@@ -39,8 +39,11 @@ window.Sound = (() => {
 
   function stopFile(){ if (clip){ clip.pause(); clip = null; } }
 
+  // Electric forklift: just the beep-beep while it moves.
+  const backupBeep    = () => beep(1050, .22, "square", .02);
+
   const talkStart = () => { beep(660, 0.06); setTimeout(() => beep(880, 0.06), 60); };
   const nextLine  = () => beep(780, 0.05);
 
-  return { unlock, beep, voice, playFile, stopFile, talkStart, nextLine };
+  return { unlock, beep, voice, playFile, stopFile, talkStart, nextLine, backupBeep };
 })();

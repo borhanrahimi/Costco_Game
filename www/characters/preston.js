@@ -32,7 +32,7 @@ Game.setPlayer({
   // over his head every 8–18 seconds. Add or change lines freely.
   thoughts: [
     "I could really go for a torta right now...",
-    "Chulo!",
+    "Chulo! :(",
     "Where is Liset ? ",
     "I look sexy! Yeah baby!",
     "Do I smell like fish? ...nah.",
