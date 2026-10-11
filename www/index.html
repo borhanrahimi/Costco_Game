@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Preston's Shift">
+  <title>Preston's Shift</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Chakra+Petch:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="320" height="208" aria-label="Preston's Shift game"></canvas>
+    <div id="touch"></div>
+    <div class="stick" id="stick" hidden><div class="knob" id="knob"></div></div>
+
+    <div class="hud" id="hud" hidden>
+      <div class="stat"><span class="bubble"></span><span id="count">0/0</span></div>
+      <div class="stat" id="dogStat" hidden><span class="hotdog-icon"></span><span id="dogs">0</span></div>
+      <div class="spacer"></div>
+      <button class="hudbtn" id="mapBtn">MAP</button>
+    </div>
+
+    <button class="talk" id="talkBtn" hidden aria-label="Talk">TALK</button>
+    <div class="toast" id="toast" hidden></div>
+    <div class="keyhint" id="keyhint" hidden>Arrows or WASD to walk · Space to talk · M for map</div>
+
+    <div class="dialog" id="dialog" hidden>
+      <img class="portrait" id="dPortrait" alt="" hidden>
+      <div class="text">
+          <div class="who"><span class="name" id="dName"></span><span class="role" id="dRole"></span><span class="since" id="dSince"></span></div>
+        <div class="line" id="dLine"></div>
+      </div>
+      <div class="next">TAP ▸</div>
+    </div>
+
+    <div class="overlay" id="titleScreen">
+      <div class="card">
+        <img class="title-portrait" id="titlePortrait" alt="Preston" hidden>
+        <div class="eyebrow">Open to close</div>
+        <h1>Preston's<br>Shift</h1>
+        <p>Explore the entrance, exit, Membership desk, and food court. Walk up to the pickup counter to order.</p>
+        <button class="btn" id="startBtn">Clock in</button>
+        <div class="tiny">Drag anywhere or use arrow keys to walk.</div>
+      </div>
+    </div>
+
+    <div class="overlay" id="mapScreen" hidden>
+      <div class="mapwrap">
+        <div class="eyebrow">Warehouse map</div>
+        <canvas id="mini"></canvas>
+        <div class="legend">
+          <span><i style="background:#ff4b3a"></i>Preston</span>
+        </div>
+        <button class="btn" id="closeMap">Back to work</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="doneScreen" hidden>
+      <div class="card">
+        <div class="eyebrow">Everyone's caught up</div>
+        <h2>You talked to the whole crew!</h2>
+        <p id="doneText"></p>
+        <button class="btn" id="keepBtn">Keep exploring</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ENGINE (you normally don't need to touch these) ===== -->
+  <script src="js/core.js"></script>
+  <script src="js/tiles.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/input.js"></script>
+
+  <!-- ===== MAP ===== -->
+  <script src="maps/warehouse.js"></script>
+
+  <!-- ===== CHARACTERS: one file each =====
+       To add someone: copy characters/_template.js, rename it, edit it,
+       then add one line below pointing to the new file. -->
+  <script src="characters/preston.js"></script>
+
+  <!-- ===== STATIONS: things Preston can use ===== -->
+  <script src="stations/food-court.js"></script>
+
+  <!-- ===== START THE GAME (keep this last) ===== -->
+  <script src="js/game.js"></script>
+</body>
+</html>

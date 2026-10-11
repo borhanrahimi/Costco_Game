@@ -1,0 +1,12 @@
+{
+  "name": "prestons-shift",
+  "version": "0.1.0",
+  "description": "A top-down warehouse game starring Preston, made for iPhone.",
+  "private": true,
+  "scripts": {
+    "bundle": "node tools/bundle.js",
+    "ios:add": "npx cap add ios",
+    "ios:sync": "npx cap sync ios",
+    "ios:open": "npx cap open ios"
+  }
+}
