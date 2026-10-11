@@ -27,4 +27,16 @@ Game.setPlayer({
 
   // His voice when he talks in a conversation.
   voice: { pitch: 300, wave: "square" },
+
+  // Random things he thinks to himself while walking around. One pops up
+  // over his head every 8–18 seconds. Add or change lines freely.
+  thoughts: [
+    "I could really go for a torta right now...",
+    "Chulo!",
+    "Where is Liset ? ",
+    "I look sexy! Yeah baby!",
+    "Do I smell like fish? ...nah.",
+    "I'm gonna lift 90 lbs today. I can feel it.",
+    "Bald Nigga",
+  ],
 });

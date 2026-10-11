@@ -174,8 +174,10 @@
   for(const x of [56,60,64]) fill(x, 54, 2, 2, "U");       // pumpkin bins
   // Clothing tables staggered on the diagonal, like the plan's angled tables.
   for(let i=0;i<5;i++) for(let j=0;j<3;j++) fill(70+j*5+(i%2)*2, 38+i*4, 2, 2, "L");
-  hline(87, 38, 13, "V");                                  // TV wall
-  for(const x of [87,91,95]) for(const y of [42,46]) fill(x, y, 3, 2, "E");
+  // Electronics and Major Appliances are on the shopper's left entering NW.
+  hline(89,77,10,"V");
+  for(const x of [89,94]) for(const y of [80,83]) fill(x,y,3,2,"E");
+  for(const x of [100,104]) for(const y of [80,83]) fill(x,y,2,2,"e");
   hline(87, 51, 6, "K"); fill(95, 51, 5, 2, "L");          // jewelry, gift cards
   // Sample tables strung along the cross aisle.
   for(const x of [48,62,76,90]) hline(x, 59, 2, "T");
@@ -197,7 +199,7 @@
   const lanes = [34,36,38,40,42,44,46,48,50];
   // Complete rounded conveyor props replace the repeated square register tiles.
   // Self checkout directly continues the register bank: no separate cross-aisle.
-  for(const x of [100,103]) for(const y of [52,54,56]) fill(x, y, 1, 1, "Q");
+  for(const x of [100,103]) for(const y of [52,54,56]) fill(x, y, 2, 1, "q");
   // One continuous diagonal merchandise run. Invisible collision follows its
   // footprint; a single smooth fixture replaces separate square rack tiles.
   for(let y=59;y<=78;y++){
@@ -236,12 +238,12 @@
     {type:"basketStack",x:124,y:87},
     {type:"merchandiseRun",x:99,y:59,solid:false},
     ...lanes.map(y => ({type:"checkoutLane",x:100,y})),
+    ...[100,103].flatMap(x=>[52,54,56].map(y=>({type:"selfCheckout",x,y,solid:false}))),
+    ...[100,104].flatMap(x=>[80,83].map(y=>({type:"majorAppliance",x,y,solid:false}))),
     { type: "forklift", x: 8, y: 12 },
     { type: "forklift", x: 6, y: 37 },
     { type: "forklift", x: 10, y: 37 },
     ...[[120,36],[123,36],[126,36],[127,60],[127,63]].map(([x,y]) => ({ type: "tireRack", x, y })),
-    // Steel columns where the main aisles cross.
-    ...[[46,35],[68,35],[86,35],[46,61],[67,61],[87,61],[104,20],[104,45]].map(([x,y]) => ({ type: "column", x, y })),
   );
   layout.signs = layout.signs.filter(s => !["ENTRANCE","EXIT","COSTCO WHOLESALE"].includes(s.text)).map(s => ({...s,x:s.y+westExtension,y:width-s.x}));
   layout.signs.push(
@@ -264,7 +266,8 @@
     {text:"HOUSEWARES",x:50,y:37.4,kind:"dept"},
     {text:"SEASONAL",x:61,y:37.4,kind:"dept"},
     {text:"CLOTHING",x:78,y:37.4,kind:"dept"},
-    {text:"ELECTRONICS",x:93.5,y:37.2,kind:"dept"},
+    {text:"ELECTRONICS",x:93.5,y:76,kind:"dept"},
+    {text:"MAJOR APPLIANCES",x:103,y:78,kind:"dept"},
     {text:"JEWELRY",x:90,y:50.4,kind:"dept"},
     {text:"SAMPLES",x:62,y:58.4,kind:"dept"},
     {text:"PRODUCE",x:41,y:62.6,kind:"produce"},
@@ -274,7 +277,8 @@
     {text:"HEALTH + BEAUTY",x:81,y:63.6,kind:"dept"},
     {text:"PHARMACY",x:82,y:76.4,kind:"dept"},
     {text:"CONTACT LENSES   OPTICAL",x:71.5,y:84.2,kind:"optical"},
-    {text:"SELF CHECK-OUT",x:102,y:57.5,kind:"selfCheckout"},
+    // Centered immediately above the two self-checkout banks.
+    {text:"SELF CHECKOUT",x:102.5,y:50.5,kind:"selfCheckout"},
     ...lanes.map((y,i) => ({text:String(i+1),x:100.5,y:y-.2,kind:"lane"})),
     {text:"TIRE SHOP",x:124,y:33.6,kind:"tire"},
   );
@@ -282,5 +286,83 @@
     {x:3,y:14.6,length:13},                                // dock safety line
     ...[44,51].map(y => ({x:120,y:y+.5,length:10})),      // tire bay dividers
   ];
+  // Temporary simplified editing view: preserve the footprint and the exact
+  // service/check-out positions, clearing unrelated merchandise and rooms.
+  const existing=layout.tiles.map(row=>row.split(""));
+  // Keep the full east-wall service run: women's room, men's room, break room,
+  // office, food court and membership.
+  const retainedService=(x,y)=>x>=107&&x<=118&&y>=3&&y<=79;
+  const retainedTire=(x,y)=>x>=118&&x<=130&&y>=34&&y<=66;
+  const retainedMajor=(x,y)=>x>=100&&x<=107&&y>=80&&y<=84;
+  layout.tiles=existing.map((row,y)=>row.map((c,x)=>{
+    if(["X","~","w","r","q"].includes(c))return c;
+    if(retainedService(x,y)||retainedTire(x,y)||retainedMajor(x,y))return c;
+    const exterior=[[-1,0],[1,0],[0,-1],[0,1]].some(([dx,dy])=>
+      [undefined,"X","~"].includes(existing[y+dy]?.[x+dx]));
+    if((c==="W"||c==="D")&&exterior)return "W";
+    if(c==="M"&&x>=111&&y>=79)return c;
+    return ".";
+  }).join(""));
+  // Entrance-left display zone; keep the diagonal approach entirely open.
+  const simplified=layout.tiles.map(row=>row.split(""));
+  for(let y=77;y<=85;y++)for(let x=100;x<=107;x++)
+    if(["V","e"].includes(simplified[y][x]))simplified[y][x]=".";
+  const fixture=(x,y,w,h)=>{for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)simplified[yy][xx]="e";};
+  for(const x of [102,106])fixture(x,85,3,1);
+  for(const x of [93,96,99])fixture(x,84,2,2);
+  fixture(90,79,6,1);
+  // Long orange warehouse aisle continues horizontally west from the washer
+  // section to the interior end wall, with one tile of transition space.
+  for(let x=21;x<=91;x++)if(simplified[86][x]===".")simplified[86][x]="R";
+  // Checkout boundary shown by the red markup. It stops three tiles before
+  // Register 1 so employees and members can walk through the opening.
+  for(let y=3;y<=30;y++)simplified[y][102]="W";
+  // Departments on the shopper side of the wall. Optical is the larger lower
+  // bay; Hearing is the smaller bay directly above it.
+  // Optical frame shelving runs vertically against the checkout wall. The red
+  // counter connects at the upper end, making the opposite-facing L layout.
+  for(let y=21;y<=27;y++)simplified[y][101]="I";
+  for(let x=98;x<=101;x++)simplified[20][x]="K";
+  // Hearing mirrors Optical's open rectangular layout at a smaller scale.
+  for(let y=11;y<=13;y++)simplified[y][98]="K";
+  // Replace the scattered food-court table tiles with organized seating props.
+  for(let y=52;y<=60;y++)for(let x=107;x<=117;x++)if(simplified[y][x]==="T")simplified[y][x]=".";
+  // Join the straight run to the office frontage beside Register 1.
+  for(let x=111;x<=113;x++)simplified[33][x]="W";
+  layout.tiles=simplified.map(row=>row.join(""));
+  layout.props=layout.props.filter(p=>!["forklift","majorAppliance"].includes(p.type));
+  layout.props.push(
+    ...[82,86].map(x=>({type:"tvDisplay",x,y:83,solid:false})),
+    ...[68,71,74,77,80].map(y=>({type:"tvShelf",x:82,y})),
+    ...[93,96,99].map(x=>({type:"washerDisplay",x,y:84,solid:false})),
+    {type:"jewelryCounter",x:90,y:79,solid:false},
+    {type:"foodKioskBank",x:111,y:51},
+    ...[53,57].flatMap(y=>[107,112].map(x=>({type:"foodCourtTable",x,y}))),
+    {type:"opticalCounter",x:98,y:20,solid:false},
+    {type:"hearingDesk",x:98,y:11,rotation:-90,solid:false},
+    ...[99,100,101].map(x=>({type:"hearingDisplay",x,y:10})),
+    ...[15,16].map(y=>({type:"hearingDisplay",x:98,y})),
+    ...[11,12,13,14,15,16].map(y=>({type:"hearingDisplay",x:101,y})),
+    ...[98,99,100,101].map(x=>({type:"hearingDisplay",x,y:17})),
+    // Low eyeglass displays complete the rectangular Optical footprint. The
+    // missing left-side case at y:25 is the customer entrance.
+    ...[21,22,23,24,26,27].map(y=>({type:"opticalDisplay",x:98,y})),
+    ...[98,99,100,101].map(x=>({type:"opticalDisplay",x,y:28})),
+    // Simple square gray employee lockers continue in one line to the end.
+    ...Array.from({length:28},(_,i)=>({type:"employeeLocker",x:103,y:3+i,solid:false})),
+  );
+  const keptSigns=new Set(["MEMBERSHIP","TIRE CENTER","TIRE SHOP","FOOD COURT","MPU","OFFICE","BREAK ROOM","MEN","WOMEN","MAJOR APPLIANCES","SELF CHECKOUT","NORTH ↑"]);
+  layout.signs=layout.signs.filter(s=>keptSigns.has(s.text)||s.kind==="lane");
+  const foodCourtSign=layout.signs.find(s=>s.text==="FOOD COURT");
+  if(foodCourtSign){foodCourtSign.x=114;foodCourtSign.y=45.5;}
+  layout.signs=layout.signs.filter(s=>s.text!=="MAJOR APPLIANCES");
+  layout.signs.push(
+    {text:"HEARING",x:99.5,y:9,kind:"dept"},
+    {text:"OPTICAL",x:99.5,y:19,kind:"optical"},
+    {text:"TVs",x:85,y:66.5,kind:"dept"},
+    {text:"WASHERS",x:97,y:82.5,kind:"dept"},
+    {text:"JEWELRY",x:93,y:77.5,kind:"dept"},
+  );
+  layout.floorLines=layout.floorLines.filter(line=>line.x>=120);
   Game.setMap(layout);
 })();

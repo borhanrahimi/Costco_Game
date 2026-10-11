@@ -1,7 +1,7 @@
 // sprites.js — draws the people (with real faces), name tags, signs and the angry steam.
 // Each person is 24 x 48 pixels, built from the "look" in their character file.
 // Look options: hair, skin, shirt, vest, pants, shoes, cap, tie, apron, stripes,
-//               bald, curly, longHair, glasses, beard, badge, eyes (eye color), lips
+//               bald, curly, longHair, glasses, beard, moustache, stubble, badge, eyes, lips
 
 window.Sprites = (() => {
   const TS = Game.TS;
@@ -40,6 +40,15 @@ window.Sprites = (() => {
       // ---------- arms (behind torso edges)
       r(2, 20 + sw, 3, 10, top); r(2, 20 + sw, 1, 10, shade(top, .85)); r(2, 30 + sw, 3, 3, skin); r(2, 32 + sw, 3, 1, skinD);
       r(19, 20 - sw, 3, 10, top); r(21, 20 - sw, 1, 10, topD); r(19, 30 - sw, 3, 3, skin); r(19, 32 - sw, 3, 1, skinD);
+      if (L.bulky){
+        // Monster mode: broad capped shoulders, big biceps and thick forearms.
+        r(0, 19 + sw, 6, 8, top); r(0, 21 + sw, 2, 6, topD);
+        r(1, 26 + sw, 5, 5, skin); r(0, 28 + sw, 5, 5, skin);
+        r(1, 32 + sw, 4, 2, skinD); r(2, 27 + sw, 3, 1, skinL);
+        r(18, 19 - sw, 6, 8, top); r(22, 21 - sw, 2, 6, topD);
+        r(18, 26 - sw, 5, 5, skin); r(19, 28 - sw, 5, 5, skin);
+        r(19, 32 - sw, 4, 2, skinD); r(19, 27 - sw, 3, 1, skinL);
+      }
       // ---------- torso
       r(4, 20, 16, 13, shirt); r(5, 19, 14, 1, shirt);
       r(18, 20, 2, 13, shirtD);
@@ -96,6 +105,12 @@ window.Sprites = (() => {
           r(5, 12, 1, 4, hair); r(18, 12, 1, 4, hair); r(6, 14, 3, 3, hair); r(15, 14, 3, 3, hair); r(8, 16, 8, 2, hair);
           r(10, 14, 4, 1, hair); r(10, 15, 4, 1, lip);
         }
+        if (L.stubble && !L.beard){
+          [[6,14],[8,16],[10,17],[13,17],[16,14],[17,16]].forEach(([x,y]) => r(x, y, 1, 1, shade(hair, .82)));
+        }
+        if (L.moustache && !L.beard){
+          r(9, 14, 3, 1, hair); r(12, 14, 3, 1, hair); r(10, 15, 4, 1, hairD);
+        }
       }
       // ---------- hair
       if (!L.bald){
@@ -139,6 +154,11 @@ window.Sprites = (() => {
       r(15, 19, 2, 2, shirtL);                                           // collar
       // arm
       r(11 + sw * 2, 21, 4, 9, top); r(11 + sw * 2, 21, 1, 9, topD); r(11 + sw * 2, 30, 4, 3, skin);
+      if (L.bulky){
+        r(9 + sw, 19, 8, 8, top); r(9 + sw, 22, 2, 6, topD);
+        r(10 + sw, 26, 8, 6, skin); r(12 + sw, 31, 7, 4, skin);
+        r(13 + sw, 27, 4, 1, skinL); r(14 + sw, 34, 4, 1, skinD);
+      }
       // neck + head
       r(11, 16, 4, 3, skinD);
       r(8, 5, 11, 1, skin); r(7, 6, 12, 10, skin); r(8, 16, 10, 1, skin); r(10, 17, 7, 1, skinD);
@@ -150,6 +170,8 @@ window.Sprites = (() => {
       r(17, 13, 1, 1, "rgba(220,110,100,.25)");
       if (L.glasses){ const f = L.glasses === true ? "#1b1b1f" : L.glasses; r(14, 9, 4, 1, f); r(14, 12, 4, 1, f); r(14, 9, 1, 4, f); r(17, 9, 1, 4, f); r(12, 10, 2, 1, f); }
       if (L.beard){ r(10, 13, 8, 4, hair); r(16, 15, 2, 1, lip); }
+      if (L.stubble && !L.beard){ r(13, 16, 1, 1, shade(hair, .82)); r(15, 16, 1, 1, shade(hair, .82)); }
+      if (L.moustache && !L.beard){ r(15, 14, 3, 1, hair); r(16, 15, 2, 1, hairD); }
       if (!L.bald){
         r(7, 2, 11, 4, hair); r(8, 1, 9, 1, hair); r(6, 4, 5, 11, hair); r(7, 6, 3, 1, hairD); r(16, 6, 3, 1, hair);
         r(9, 2, 5, 1, hairL); r(6, 12, 2, 3, hairD);
@@ -183,6 +205,27 @@ window.Sprites = (() => {
     g.fillStyle = "#ffffff"; g.fillText(text, Math.round(x), by + h/2 + 1);
   }
 
+  // Thought bubble: rounded cloud with a trail of little puffs down to the head.
+  function thought(g, text, x, y){
+    g.font = '12px "Silkscreen", monospace'; g.textAlign = "center"; g.textBaseline = "middle";
+    const words = text.split(" "), lines = [];
+    for (const w of words){
+      const cur = lines[lines.length - 1];
+      if (cur && g.measureText(cur + " " + w).width <= 170) lines[lines.length - 1] = cur + " " + w;
+      else lines.push(w);
+    }
+    const lh = 15, w = Math.ceil(Math.max(...lines.map(l => g.measureText(l).width))) + 16, h = lines.length * lh + 10;
+    const bx = Math.round(x - w/2), by = Math.round(y - 22 - h);
+    g.fillStyle = "#16171c";
+    g.beginPath(); g.roundRect(bx - 2, by - 2, w + 4, h + 4, 10); g.fill();
+    [[x + 6, y - 14, 5], [x + 1, y - 5, 3]].forEach(([px, py, r]) => { g.beginPath(); g.arc(px, py, r + 2, 0, Math.PI*2); g.fill(); });
+    g.fillStyle = "#ffffff";
+    g.beginPath(); g.roundRect(bx, by, w, h, 8); g.fill();
+    [[x + 6, y - 14, 5], [x + 1, y - 5, 3]].forEach(([px, py, r]) => { g.beginPath(); g.arc(px, py, r, 0, Math.PI*2); g.fill(); });
+    g.fillStyle = "#3a3c44";
+    lines.forEach((l, i) => g.fillText(l, Math.round(x), by + 5 + lh/2 + i * lh + 1));
+  }
+
   function steam(g, x, y, t){
     x = Math.round(x); y = Math.round(y);
     for (let i = 0; i < 2; i++){
@@ -203,6 +246,16 @@ window.Sprites = (() => {
     R(0, 2, 14, 4, "#e2b46a"); R(1, 1, 12, 1, "#f0c884"); R(0, 5, 14, 1, "#b88a44");     // bun
     R(-1, 2, 16, 2, "#c4422f"); R(-1, 2, 16, 1, "#e0634f");                               // sausage
     R(2, 2, 2, 1, "#f2d24a"); R(6, 3, 2, 1, "#f2d24a"); R(10, 2, 2, 1, "#f2d24a");       // mustard
+  }
+
+  // White energy-drink can used by the employee break-room station.
+  function energyDrink(g, x, y, s = 2){
+    const R = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(x + a*s, y + b*s, w*s, h*s); };
+    R(1, 1, 7, 13, "#f5f5ef"); R(2, 0, 5, 1, "#aeb8ba"); R(2, 14, 5, 1, "#8e999c");
+    R(1, 3, 1, 9, "#cbd2d1"); R(7, 3, 1, 9, "#a9b3b5");
+    // Black M with three neon-green claw marks.
+    R(3, 4, 1, 7, "#1f2528"); R(5, 4, 1, 7, "#1f2528"); R(4, 6, 1, 3, "#1f2528");
+    R(2, 4, 1, 5, "#72b52f"); R(4, 3, 1, 5, "#72b52f"); R(6, 4, 1, 5, "#72b52f");
   }
 
   // The famous food court menu board: "HOT DOG + SODA|$1.50" (| starts the second line)
@@ -286,5 +339,5 @@ window.Sprites = (() => {
     }
   }
 
-  return { person, nameTag, steam, sign, hotdog, W, H };
+  return { person, nameTag, thought, steam, sign, hotdog, energyDrink, W, H };
 })();

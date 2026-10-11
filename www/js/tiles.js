@@ -29,6 +29,8 @@ window.Tiles = (() => {
   SOLID.add("r");
   // Collision-only diagonal wall; the connected facade supplies its artwork.
   SOLID.add("w");
+  SOLID.add("q");SOLID.add("e");
+  LEGEND.q="self checkout";LEGEND.e="major appliances";
   for (const c of ["s", "t", "d", "p", "f"]) SOLID.add(c);
 
   // repeatable "random" number 0..1 from any whole number (so the store looks the same every time)
@@ -603,6 +605,9 @@ window.Tiles = (() => {
   PROPS.merchandiseRun = { w:13, h:20 };
   PROPS.cornerVestibule = { w:10, h:8 };
   PROPS.basketStack = { w:2, h:2 };
+  PROPS.selfCheckout = { w:2, h:1 };
+  PROPS.majorAppliance = { w:2, h:2 };
+  Object.assign(PROPS,{tvDisplay:{w:3,h:1},tvShelf:{w:6,h:1},washerDisplay:{w:2,h:2},jewelryCounter:{w:6,h:1},employeeLocker:{w:1,h:1},opticalCounter:{w:4,h:1},opticalDisplay:{w:1,h:1},hearingDesk:{w:3,h:1},hearingDisplay:{w:1,h:1},foodKioskBank:{w:6,h:1},foodCourtTable:{w:3,h:2}});
   Object.assign(PROPS, { cornerDoor: { w:1, h:1 }, cornerWall: { w:1, h:1 } });
   Object.assign(PROPS, { cornerEntrance: { w:1, h:1 }, cornerExit: { w:1, h:1 } });
   const propCache = new Map();
@@ -619,6 +624,149 @@ window.Tiles = (() => {
     }
     if (propCache.has(type)) return propCache.get(type);
     let img = null;
+    if(type === "tvShelf"){
+      img=canvas(192,96,(g,R)=>{
+        R(4,88,184,6,"rgba(0,0,0,.2)");
+        // Long horizontal orange warehouse shelf with four televisions.
+        R(3,67,186,7,"#d56522");R(3,67,186,2,"#f39a45");
+        R(8,74,6,16,"#bd4b18");R(178,74,6,16,"#bd4b18");
+        const screens=[{x:7,w:30,h:42},{x:40,w:48,h:55},{x:91,w:35,h:46},{x:129,w:56,h:52}];
+        for(const tv of screens){
+          const top=64-tv.h;R(tv.x,top,tv.w,tv.h,"#26323c");R(tv.x+3,top+3,tv.w-6,tv.h-8,"#4d91a8");
+          const sky=g.createLinearGradient(0,top+4,0,60);sky.addColorStop(0,"#62aac2");sky.addColorStop(1,"#d0e8dc");
+          g.fillStyle=sky;g.fillRect(tv.x+4,top+4,tv.w-8,tv.h-10);
+          g.fillStyle="#719b83";g.beginPath();g.moveTo(tv.x+4,top+tv.h-6);g.lineTo(tv.x+tv.w*.35,top+tv.h*.55);g.lineTo(tv.x+tv.w*.6,top+tv.h-12);g.lineTo(tv.x+tv.w-4,top+tv.h*.62);g.lineTo(tv.x+tv.w-4,top+tv.h-6);g.fill();
+          R(tv.x+Math.floor(tv.w/2)-2,64,4,5,"#414b52");R(tv.x+Math.floor(tv.w/2)-8,68,16,3,"#535e64");
+        }
+        R(3,74,186,4,"#65736f");
+      });
+    }
+    if(type === "foodKioskBank"){
+      img=canvas(192,82,(g,R)=>{
+        R(4,76,184,5,"rgba(0,0,0,.2)");R(5,72,182,7,"#69757a");
+        R(4,34,184,5,"#59646a");
+        for(let i=0;i<6;i++){
+          const x=i*32;
+          R(x+8,34,17,40,"#3d474d");R(x+5,4,23,34,"#20292e");
+          R(x+8,7,17,26,"#dcecea");R(x+10,9,13,5,"#c52b32");
+          R(x+11,11,11,1,"#ffffff");R(x+10,17,6,6,"#d8a24c");
+          R(x+18,17,5,6,"#ca4a37");R(x+10,27,13,3,"#315b91");
+        }
+      });
+    }
+    if(type === "foodCourtTable"){
+      img=canvas(96,78,(g,R)=>{
+        R(8,70,80,6,"rgba(0,0,0,.18)");
+        R(23,29,50,27,"#e8e7e1");R(25,30,46,4,"#ffffff");
+        R(29,56,6,14,"#707a7e");R(61,56,6,14,"#707a7e");
+        // Exactly four single-person red chairs: north, south, west and east.
+        R(38,13,20,11,"#c72c31");R(41,24,14,5,"#7a2025");
+        R(38,61,20,10,"#c72c31");R(41,56,14,5,"#7a2025");
+        R(7,36,13,20,"#c72c31");R(76,36,13,20,"#c72c31");
+        R(39,38,18,8,"#f4f1e8");R(43,40,10,2,"#315b91");
+      });
+    }
+    if(type === "hearingDisplay"){
+      img=canvas(32,38,(g,R)=>{
+        R(3,33,27,4,"rgba(0,0,0,.18)");R(3,20,27,14,"#8d9698");
+        R(5,12,23,11,"#dcebea");R(7,14,19,7,"#f5f3e9");
+        R(4,10,25,4,"#a9c4c7");R(8,16,5,3,"#59666b");
+        R(19,15,4,5,"#59666b");R(10,17,10,1,"#315c94");R(6,24,21,2,"#c32930");
+      });
+    }
+    if(type === "hearingDesk"){
+      img=canvas(96,58,(g,R)=>{
+        R(4,51,88,5,"rgba(0,0,0,.18)");
+        // Compact red consultation counter with a checkout terminal.
+        R(5,31,86,9,"#b51e29");R(5,31,86,3,"#e33b42");
+        R(10,40,7,13,"#75151d");R(79,40,7,13,"#75151d");
+        R(58,12,27,19,"#30383d");R(61,15,21,13,"#9fc0c5");
+        R(68,31,5,6,"#596267");R(62,36,17,3,"#4a5358");
+        R(17,26,24,4,"#f3f1e8");R(20,27,11,1,"#315c94");
+        R(34,27,5,1,"#c32930");
+        R(35,43,26,6,"#687378");R(39,49,18,7,"#4f595d");
+      });
+    }
+    if(type === "opticalDisplay"){
+      img=canvas(32,38,(g,R)=>{
+        R(3,33,27,4,"rgba(0,0,0,.18)");R(3,20,27,14,"#b51e29");
+        R(5,12,23,11,"#dcebea");R(7,14,19,7,"#f5f3e9");
+        R(4,10,25,4,"#a9c4c7");R(6,11,21,1,"#ffffff");
+        for(const x of [9,19]){g.strokeStyle="#3b4449";g.lineWidth=1;g.strokeRect(x-3,16,6,3);}
+        R(12,17,4,1,"#3b4449");R(6,24,21,2,"#e33b42");
+      });
+    }
+    if(type === "opticalCounter"){
+      img=canvas(128,50,(g,R)=>{
+        R(3,43,122,5,"rgba(0,0,0,.2)");
+        R(2,17,124,27,"#a71924");R(2,17,124,4,"#e33b42");
+        R(7,22,114,17,"#c82932");R(7,39,114,4,"#78131b");
+        R(9,12,110,7,"#f1f1ec");R(9,12,110,2,"#ffffff");
+        R(82,4,27,10,"#30383d");R(85,6,21,6,"#8fb5be");
+        R(91,14,4,5,"#596267");R(18,26,39,7,"#f5f2e8");
+        R(21,28,16,2,"#2d5a91");R(40,28,14,2,"#ffffff");
+      });
+    }
+    if(type === "employeeLocker"){
+      img=canvas(32,54,(g,R)=>{
+        // One compact square gray locker; map placement forms the full row.
+        R(3,49,27,4,"rgba(0,0,0,.18)");R(3,19,27,31,"#81898c");
+        R(5,21,23,27,"#aeb4b4");R(5,21,23,3,"#c7ccca");
+        R(10,27,13,1,"#747d80");R(10,30,13,1,"#747d80");
+        R(23,35,2,6,"#60696c");R(24,36,1,2,"#e1e3df");
+      });
+    }
+    if(["tvDisplay","washerDisplay","jewelryCounter"].includes(type)){
+      const w=type==="tvDisplay"?96:type==="washerDisplay"?64:192;
+      img=canvas(w,88,g=>{
+        const round=(x,y,ww,h,r,c)=>{g.fillStyle=c;g.beginPath();g.roundRect(x,y,ww,h,r);g.fill();};
+        const steel=g.createLinearGradient(0,0,w,0);steel.addColorStop(0,"#869295");steel.addColorStop(.4,"#edf0e8");steel.addColorStop(1,"#a0acae");
+        round(3,79,w-6,7,3,"rgba(0,0,0,.18)");
+        if(type==="tvDisplay"){
+          round(5,58,86,23,4,steel);round(41,40,14,23,3,"#333e47");round(28,58,40,4,2,"#303a42");
+          round(2,3,92,51,5,"#27333f");
+          const sky=g.createLinearGradient(0,6,0,50);sky.addColorStop(0,"#438ba7");sky.addColorStop(1,"#c0e4da");round(6,7,84,43,2,sky);
+          g.fillStyle="#67988b";g.beginPath();g.moveTo(6,50);g.lineTo(31,24);g.lineTo(52,43);g.lineTo(71,30);g.lineTo(90,50);g.fill();
+          g.fillStyle="#eff1c3";g.beginPath();g.arc(72,18,6,0,Math.PI*2);g.fill();
+        }else if(type==="washerDisplay"){
+          round(7,13,50,68,6,"#d9dfdc");round(9,15,46,62,4,"#f2f3ed");round(10,16,44,13,3,steel);
+          g.fillStyle="#6e858b";g.beginPath();g.arc(20,22,4,0,Math.PI*2);g.fill();round(33,19,15,5,1,"#3c606a");
+          for(const [r,c] of [[18,"#a1b0b2"],[15,"#536d7c"],[12,"#8faeb9"]]){g.fillStyle=c;g.beginPath();g.arc(32,52,r,0,Math.PI*2);g.fill();}
+          g.strokeStyle="rgba(255,255,255,.65)";g.lineWidth=2;g.beginPath();g.arc(32,52,11,3.5,5.5);g.stroke();
+        }else{
+          round(3,47,186,34,5,"#eee5d1");round(5,18,182,34,4,"#b5d0d2");round(8,21,176,27,2,"#e0eeea");
+          for(let x=14;x<182;x+=29){round(x,26,22,17,3,"#f7f3e8");g.strokeStyle="#bb9953";g.lineWidth=1.5;g.beginPath();g.ellipse(x+11,34,6,4,0,0,Math.PI*2);g.stroke();}
+          round(3,47,186,4,2,steel);for(const x of [64,128])round(x,19,2,60,1,"#a5b8b6");
+          round(8,72,176,3,1,"#c4b89e");
+        }
+      });
+    }
+    if(type === "selfCheckout" || type === "majorAppliance"){
+      img=canvas(64,type==="selfCheckout"?100:104,g=>{
+        const round=(x,y,w,h,r,color)=>{g.fillStyle=color;g.beginPath();g.roundRect(x,y,w,h,r);g.fill();};
+        const metal=g.createLinearGradient(0,0,64,0);metal.addColorStop(0,"#747f85");metal.addColorStop(.35,"#d3d9d8");metal.addColorStop(.7,"#a2adae");metal.addColorStop(1,"#67747b");
+        if(type==="selfCheckout"){
+          round(3,90,58,8,4,"rgba(0,0,0,.2)");
+          round(8,49,43,44,6,"#4f5b61");round(10,52,38,38,4,"#606e74");
+          round(4,43,52,14,5,metal);round(10,46,24,7,3,"#303e44");
+          round(15,48,14,2,1,"#de4b4f");
+          round(23,18,6,27,2,"#7e8b8e");
+          round(8,6,39,29,5,"#26343d");round(11,9,33,22,3,"#cae6db");
+          g.font="italic 10px Arial";g.textAlign="center";g.fillStyle="#43846b";g.fillText("Open",27,24);
+          round(46,26,13,20,3,"#293a44");round(48,29,9,7,2,"#93b9c6");
+          for(let y=39;y<44;y+=2)round(49,y,7,1,.5,"#d5dbd5");
+          round(48,64,14,5,2,metal);round(14,74,23,2,1,"#36444b");
+        }else{
+          round(3,94,58,7,3,"rgba(0,0,0,.18)");
+          round(5,9,27,87,4,metal);round(7,11,23,23,2,"#dce0db");
+          round(8,37,21,55,2,"#bdc8c7");round(26,42,2,21,1,"#f3f4ed");round(26,17,2,11,1,"#f3f4ed");
+          round(35,49,26,47,4,"#eceee8");round(38,52,20,7,2,"#c5ccca");
+          g.fillStyle="#687c85";g.beginPath();g.arc(48,76,10,0,Math.PI*2);g.fill();
+          g.fillStyle="#a4c2cb";g.beginPath();g.arc(48,76,7,0,Math.PI*2);g.fill();
+          round(39,53,4,4,2,"#798b90");round(49,54,7,2,1,"#637f83");
+        }
+      });
+    }
     if(type === "cornerVestibule"){
       img=canvas(288,352,(g)=>{
         // One uninterrupted diagonal frontage, rather than rotated tile sprites.
@@ -972,6 +1120,7 @@ window.Tiles = (() => {
     U:"#e86f1c", D:"#8fb6c9", L:"#d6aabe", Y:"#e650a0", N:"#d9534f", G:"#c9883e", H:"#b3261e" };
   Object.assign(MINI, { s:"#d0e0e3", t:"#ffffff", d:"#b69b76", p:"#aebdc1", f:"#c2ccd0" });
   MINI.a = "#d8d4ca";
+  MINI.q="#83b9aa";MINI.e="#a9bdc4";
 
   return { SOLID, LEGEND, HEIGHT, PROPS, hash, shade, floor, object, propImage, MINI };
 })();

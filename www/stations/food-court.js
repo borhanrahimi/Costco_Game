@@ -5,16 +5,16 @@
 // a short speed boost.
 
 Game.addStation({
-  name: "Food Court",
-  position: { x: 113, y: 50 },      // north-up plan: pickup on the east-side food court
-  marker: "hotdog",                 // little hot dog floating over the counter
+  name: "Food Court Kiosk",
+  position: { x: 113, y: 51 },      // center of the connected six-kiosk station
+  marker: "hotdog",                 // ordering marker above the kiosk
   action: "hotdog",                 // what happens after the conversation
   price: 1.50,
 
   conversation: [
-    { who: "Food Court", text: "Hot dog and a soda, $1.50. Same price since 1985!" },
+    { who: "Food Court Kiosk", text: "Hot dog and a soda, $1.50. Tap to add it to your order." },
     { who: "Preston",    text: "One hot dog combo, please!" },
-    { who: "Food Court", text: "Here you go. Ketchup and mustard are on the side." },
+    { who: "Food Court Kiosk", text: "Order placed! Pick it up at the counter." },
   ],
 
   // Shown after Preston eats it.

@@ -31,6 +31,32 @@
   // ---------------------------------------------------------------- people
   const P = Game.player || { name: "Preston", look: Outfit.forklift, voice: { pitch: 300 } };
   const playerLook = { ...Outfit.forklift, ...P.look };
+  const SAVE_KEY = "prestons-shift-save-v1";
+
+  function loadProgress(){
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      return saved && saved.version === 1 ? saved : null;
+    } catch (e) {
+      console.warn("Couldn't load shift progress:", e);
+      return null;
+    }
+  }
+
+  function saveProgress(){
+    if (!player || !npcs || state === "title") return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        version: 1,
+        player: { x: player.x, y: player.y, dir: player.dir },
+        talked: npcs.filter(n => n.talked).map(n => n.name),
+        hotdogs,
+        doneShown,
+      }));
+    } catch (e) {
+      console.warn("Couldn't save shift progress:", e);
+    }
+  }
 
   // Turn whatever is in a character file into a list of { who, text, sound } lines.
   function readConversation(c){
@@ -38,10 +64,13 @@
     return raw.map(l => typeof l === "string" ? { who: c.name, text: l } : { who: l.who || c.name, text: l.text || "", sound: l.sound });
   }
 
-  let player, npcs, stations, state = "title", talkedCount = 0, doneShown = false, hotdogs = 0, boostT = 0;
+  let player, npcs, stations, state = "title", talkedCount = 0, doneShown = false, hotdogs = 0, boostT = 0, boostKind = null;
+  // Preston's random thoughts: a bubble over his head every so often.
+  const THOUGHT_SHOW = 4, thoughtGap = () => 8 + Math.random() * 10;
+  let thought = null, thoughtT = 5, lastThought = -1;
   const cam = { x: 0, y: 0 };
 
-  function resetGame(){
+  function resetGame(saved = null){
     const st = M.start || { x: 2, y: 2, facing: "down" };
     player = { x: (st.x + .5) * TS, y: (st.y + 1) * TS - 2, dir: st.facing || "up", anim: 0, moving: false };
     npcs = Game.characters.map((c, i) => {
@@ -62,8 +91,23 @@
       return { ...st, id: 100 + i, isStation: true, role: st.role || "", lines: readConversation(st),
                px: (pos.x + .5) * TS, py: (pos.y + 1) * TS, portrait: st.portrait || null, look: {} };
     });
-    hotdogs = 0; boostT = 0; $("dogStat").hidden = true;
+    hotdogs = 0; boostT = 0; boostKind = null; $("dogStat").hidden = true;
+    thought = null; thoughtT = 5;
     talkedCount = 0; doneShown = false; talk.who = null;
+    if (saved){
+      const sx = Number(saved.player?.x), sy = Number(saved.player?.y);
+      if (Number.isFinite(sx) && Number.isFinite(sy) && !blocked(sx, sy, player)){
+        player.x = sx; player.y = sy;
+      }
+      if (["up", "down", "left", "right"].includes(saved.player?.dir)) player.dir = saved.player.dir;
+      const talked = new Set(Array.isArray(saved.talked) ? saved.talked : []);
+      npcs.forEach(n => n.talked = talked.has(n.name));
+      talkedCount = npcs.filter(n => n.talked).length;
+      hotdogs = Math.max(0, Math.floor(Number(saved.hotdogs) || 0));
+      doneShown = !!saved.doneShown;
+      $("dogs").textContent = hotdogs;
+      $("dogStat").hidden = hotdogs === 0;
+    }
     cam.x = player.x - VW/2; cam.y = player.y - WORLD_VH/2;
     updateHud();
   }
@@ -140,6 +184,7 @@
     $("dialog").hidden = false; $("keyhint").hidden = true;
     Sound.talkStart();
     if (!n.talked && !n.isStation){ n.talked = true; talkedCount++; updateHud(); }
+    saveProgress();
   }
 
   let toastTimer = null;
@@ -155,9 +200,14 @@
     if (who && who.isStation && who.action === "hotdog"){
       hotdogs++;
       $("dogs").textContent = hotdogs; $("dogStat").hidden = false;
-      boostT = who.boostSeconds || 15;
+      boostT = who.boostSeconds || 15; boostKind = "hotdog";
       Sound.beep(523, 0.08); setTimeout(() => Sound.beep(659, 0.08), 90); setTimeout(() => Sound.beep(784, 0.12), 180);
       toast(`${hotdogs === 1 ? "Hot dog" : hotdogs + " hot dogs"} for $${(who.price || 1.5).toFixed(2)}! ${who.afterwards || ""}`);
+    }
+    if (who && who.isStation && who.action === "energyDrink"){
+      boostT = who.boostSeconds || 30; boostKind = "energy";
+      Sound.beep(659, 0.08); setTimeout(() => Sound.beep(784, 0.08), 90); setTimeout(() => Sound.beep(988, 0.14), 180);
+      toast(who.afterwards || "Energy boost!");
     }
     Sound.stopFile();
     setState("play");
@@ -166,6 +216,7 @@
       $("doneText").textContent = `All ${npcs.length} people on shift got a hello from ${P.name}. You can keep walking around.`;
       setState("done");
     }
+    saveProgress();
   }
 
   // ---------------------------------------------------------------- update
@@ -180,12 +231,23 @@
     if (player.moving){
       player.dir = Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "right" : "left") : (my > 0 ? "down" : "up");
       const bx = player.x, by = player.y;
-      const spd = SPEED * (boostT > 0 ? 1.6 : 1);
+      const boost = boostT > 0 ? (boostKind === "energy" ? 3 : 1.6) : 1;
+      const spd = SPEED * boost;
       moveEntity(player, mx*spd, my*spd, dt);
       player.anim += Math.hypot(player.x - bx, player.y - by);
     }
 
-    if (boostT > 0) boostT -= dt;
+    const thoughts = P.thoughts || [];
+    if (talk.who) thought = null;
+    else if (thoughts.length && (thoughtT -= dt) <= 0){
+      if (thought){ thought = null; thoughtT = thoughtGap(); }
+      else {
+        let i = Math.floor(Math.random() * thoughts.length);
+        if (thoughts.length > 1 && i === lastThought) i = (i + 1) % thoughts.length;
+        lastThought = i; thought = thoughts[i]; thoughtT = THOUGHT_SHOW;
+      }
+    }
+    if (boostT > 0){ boostT -= dt; if (boostT <= 0){ boostT = 0; boostKind = null; } }
     for (const n of npcs){
       if (n.angry){ if (n === talk.who) n.madT = 2; else if (n.madT > 0) n.madT -= dt; }
       if (!n.wander || n === talk.who){ n.moving = false; continue; }
@@ -306,13 +368,15 @@
           Sprites.steam(ctx, e.px, e.py, t);
         } else Sprites.person(ctx, e.px, e.py, e.dir, f, e.look);
       } else {
-        Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, playerLook);
+        const activeLook = boostKind === "energy" && boostT > 0 ? { ...playerLook, bulky: true } : playerLook;
+        Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, activeLook);
       }
     }
 
     // 3) Preston shows through anything in front of him (faint outline)
     ctx.globalAlpha = .35;
-    Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, playerLook);
+    const activeLook = boostKind === "energy" && boostT > 0 ? { ...playerLook, bulky: true } : playerLook;
+    Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, activeLook);
     ctx.globalAlpha = 1;
 
     // 4) hanging signs, talk markers and name tags on top
@@ -327,6 +391,7 @@
         ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fillRect(x - 15, y + 16, 30, 3);
         Sprites.hotdog(ctx, x - 14, y - 6, 2);
       }
+      if (st.marker === "whiteMonster") Sprites.energyDrink(ctx, x - 8, y - 13, 2);
       if (st === near){
         ctx.fillStyle = "#16171c"; ctx.fillRect(x - 14, y - 30, 28, 18);
         ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 12, y - 28, 24, 14);
@@ -346,6 +411,7 @@
       }
       if (n.nameTag) Sprites.nameTag(ctx, n.name.toUpperCase(), x, y - 26);
     }
+    if (thought) Sprites.thought(ctx, thought, Math.round(player.x), Math.round(player.y) - 54);
     ctx.restore();
   }
 
@@ -358,7 +424,10 @@
     for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++){
       g.fillStyle = Tiles.MINI[grid[ty][tx]] || "#cdc9c1"; g.fillRect(tx*MINI, ty*MINI, MINI, MINI);
     }
-    props.forEach(p => { g.fillStyle = "#f2b33d"; g.fillRect(p.x*MINI, p.y*MINI, p.size.w*MINI, p.size.h*MINI); });
+    props.forEach(p => {
+      g.fillStyle = p.type === "employeeLocker" ? "#8d9598" : "#f2b33d";
+      g.fillRect(p.x*MINI, p.y*MINI, p.size.w*MINI, p.size.h*MINI);
+    });
   }
   function drawMini(){
     const c = $("mini"), g = c.getContext("2d");
@@ -391,7 +460,7 @@
     $("keyhint").hidden = !(!touch && s === "play" && !talk.who);
     if (s !== "play") Input.reset();
   }
-  function start(){ Sound.unlock(); resetGame(); setState("play"); requestWake(); }
+  function start(){ Sound.unlock(); setState("play"); saveProgress(); requestWake(); }
 
   $("startBtn").onclick = start;
   $("mapBtn").onclick = toggleMap;
@@ -421,20 +490,28 @@
   }
   addEventListener("resize", resize);
   addEventListener("orientationchange", () => setTimeout(resize, 200));
+  addEventListener("pagehide", saveProgress);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveProgress(); });
 
   // ---------------------------------------------------------------- loop
   let last = performance.now(), acc = 0;
   const DT = 1/120;
+  let lastSave = performance.now();
   function loop(now){
     const frame = Math.min(0.05, (now - last) / 1000); last = now;
-    if (state === "play"){ acc += frame; while (acc >= DT){ step(DT); acc -= DT; } } else acc = 0;
+    if (state === "play"){
+      acc += frame; while (acc >= DT){ step(DT); acc -= DT; }
+      if (now - lastSave >= 1000){ saveProgress(); lastSave = now; }
+    } else acc = 0;
     render(now / 1000);
     requestAnimationFrame(loop);
   }
 
   if (P.portrait){ const tp = $("titlePortrait"); tp.src = P.portraitLarge || P.portrait; tp.hidden = false; }
   resize();
-  resetGame();
+  const savedProgress = loadProgress();
+  resetGame(savedProgress);
+  if (savedProgress) $("startBtn").textContent = "Continue shift";
   buildMini();
   setState("title");
   requestAnimationFrame(loop);
