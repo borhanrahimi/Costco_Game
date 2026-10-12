@@ -332,7 +332,7 @@
   layout.tiles=simplified.map(row=>row.join(""));
   layout.props=layout.props.filter(p=>!["forklift","majorAppliance"].includes(p.type));
   layout.props.push(
-    ...[82,86].map(x=>({type:"tvDisplay",x,y:83,solid:false})),
+    ...[82,86].map(x=>({type:"tvDisplay",x,y:83})),
     ...[68,71,74,77,80].map(y=>({type:"tvShelf",x:82,y})),
     ...[93,96,99].map(x=>({type:"washerDisplay",x,y:84,solid:false})),
     {type:"jewelryCounter",x:90,y:79,solid:false},
@@ -349,7 +349,7 @@
     ...[21,22,23,24,26,27].map(y=>({type:"opticalDisplay",x:98,y})),
     ...[98,99,100,101].map(x=>({type:"opticalDisplay",x,y:28})),
     // Simple square gray employee lockers continue in one line to the end.
-    ...Array.from({length:28},(_,i)=>({type:"employeeLocker",x:103,y:3+i,solid:false})),
+    ...Array.from({length:28},(_,i)=>({type:"employeeLocker",x:103,y:3+i})),
   );
   const keptSigns=new Set(["MEMBERSHIP","TIRE CENTER","TIRE SHOP","FOOD COURT","MPU","OFFICE","BREAK ROOM","MEN","WOMEN","MAJOR APPLIANCES","SELF CHECKOUT","NORTH ↑"]);
   layout.signs=layout.signs.filter(s=>keptSigns.has(s.text)||s.kind==="lane");

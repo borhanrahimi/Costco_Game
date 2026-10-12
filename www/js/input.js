@@ -11,8 +11,8 @@ window.Input = (() => {
 
   addEventListener("keydown", e => {
     if (!api.isPlaying() && e.target.tagName === "BUTTON") return;   // let Enter/Space press menu buttons
-    if (e.code === "KeyM"){ api.onMap(); return; }
-    if (["Space","KeyE","Enter"].includes(e.code)){ e.preventDefault(); Sound.unlock(); api.onAction(); return; }
+    if (e.code === "KeyM"){ if (!e.repeat) api.onMap(); return; }
+    if (["Space","KeyE","Enter"].includes(e.code)){ e.preventDefault(); Sound.unlock(); if (!e.repeat) api.onAction(); return; }
     const k = keyMap[e.code]; if (k){ e.preventDefault(); keys[k] = true; }
   });
   addEventListener("keyup", e => { const k = keyMap[e.code]; if (k) keys[k] = false; });
@@ -25,6 +25,7 @@ window.Input = (() => {
     if (api.isTalking()){ api.onAction(); return; }
     if (stick.id !== null) return;
     stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY; stick.dx = stick.dy = 0;
+    $("touch").setPointerCapture(e.pointerId);
     const r = $("stage").getBoundingClientRect();
     stickEl.style.left = (e.clientX - r.left) + "px"; stickEl.style.top = (e.clientY - r.top) + "px";
     knobEl.style.transform = "translate(0,0)"; stickEl.hidden = false;

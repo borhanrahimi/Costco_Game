@@ -50,6 +50,8 @@
         version: 1,
         player: { x: player.x, y: player.y, dir: player.dir },
         talked: npcs.filter(n => n.talked).map(n => n.name),
+        driving: driving ? vehicles.indexOf(driving) : null,
+        vehicles: vehicles.map(v => ({ x: v.px, y: v.py, dir: v.dir })),
         hotdogs,
         doneShown,
       }));
@@ -103,15 +105,27 @@
     driving = null; reversing = false;
     talkedCount = 0; doneShown = false; talk.who = null;
     if (saved){
+      // Restore parking positions before validating Preston's saved position.
+      if (Array.isArray(saved.vehicles)) vehicles.forEach((v, i) => {
+        const pos = saved.vehicles[i];
+        if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y) || !OPPOSITE[pos.dir]) return;
+        const previous = { px: v.px, py: v.py, dir: v.dir };
+        v.px = pos.x; v.py = pos.y; v.dir = pos.dir;
+        if (blocked(v.px, v.py, v)) Object.assign(v, previous);
+      });
+      if (Number.isInteger(saved.driving) && vehicles[saved.driving]){
+        driving = vehicles[saved.driving];
+        player.dir = driving.dir;
+      }
       const sx = Number(saved.player?.x), sy = Number(saved.player?.y);
       if (Number.isFinite(sx) && Number.isFinite(sy) && !blocked(sx, sy, player)){
         player.x = sx; player.y = sy;
-      }
+      } else driving = null;
       if (["up", "down", "left", "right"].includes(saved.player?.dir)) player.dir = saved.player.dir;
       const talked = new Set(Array.isArray(saved.talked) ? saved.talked : []);
       npcs.forEach(n => n.talked = talked.has(n.name));
       talkedCount = npcs.filter(n => n.talked).length;
-      hotdogs = Math.max(0, Math.floor(Number(saved.hotdogs) || 0));
+      hotdogs = Number.isFinite(saved.hotdogs) ? Math.max(0, Math.floor(saved.hotdogs)) : 0;
       doneShown = !!saved.doneShown;
       $("dogs").textContent = hotdogs;
       $("dogStat").hidden = hotdogs === 0;
@@ -122,23 +136,38 @@
 
   // ---------------------------------------------------------------- collision
   const HB = 9;   // half the width of someone's feet
-  const FB = 15;  // half the width of a forklift
+  // Ground footprint follows the body, wheels and forks, excluding roof height.
+  function footprint(x, y, self){
+    const vehicle = (self === player && driving) || vehicles.includes(self);
+    if (!vehicle) return { l:x-HB, r:x+HB, t:y-12, b:y };
+    const dir = self.dir;
+    if (dir === "right") return { l:x-28, r:x+48, t:y-34, b:y+4 };
+    if (dir === "left") return { l:x-48, r:x+28, t:y-34, b:y+4 };
+    return { l:x-26, r:x+26, t:y-(dir === "up" ? 50 : 34), b:y+(dir === "down" ? 18 : 4) };
+  }
   function blocked(x, y, self){
-    const hb = self === player && driving ? FB : HB;
-    const l = x - hb, r = x + hb, t = y - 12, b = y;
+    const box = footprint(x, y, self);
+    const { l, r, t, b } = box;
     for (let ty = Math.floor(t/TS); ty <= Math.floor((b - .01)/TS); ty++)
       for (let tx = Math.floor(l/TS); tx <= Math.floor((r - .01)/TS); tx++)
         if (isSolid(tx, ty)) return true;
-    const others = self === player ? npcs : [{ px: player.x, py: player.y, hb: driving ? FB : HB }, ...npcs.filter(n => n !== self)];
-    for (const o of others){ const ob = o.hb || HB; if (l < o.px + ob && r > o.px - ob && t < o.py && b > o.py - 12) return true; }
-    for (const v of vehicles) if (v !== driving && l < v.px + FB && r > v.px - FB && t < v.py && b > v.py - 12) return true;
+    const others = [...npcs.filter(n => n !== self), ...vehicles.filter(v => v !== self && v !== driving)];
+    if (self !== player && self !== driving) others.push(player);
+    for (const o of others){
+      const ob = footprint(o === player ? o.x : o.px, o === player ? o.y : o.py, o);
+      if (l < ob.r && r > ob.l && t < ob.b && b > ob.t) return true;
+    }
     return false;
   }
   const getX = e => e === player ? e.x : e.px, getY = e => e === player ? e.y : e.py;
   function moveEntity(e, vx, vy, dt){
     const kx = e === player ? "x" : "px", ky = e === player ? "y" : "py";
-    const nx = e[kx] + vx*dt; if (!blocked(nx, e[ky], e)) e[kx] = nx; else if (e !== player) return false;
-    const ny = e[ky] + vy*dt; if (!blocked(e[kx], ny, e)) e[ky] = ny; else if (e !== player) return false;
+    // Substeps prevent boosted movement from crossing narrow collision footprints.
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(vx*dt), Math.abs(vy*dt)) / 4));
+    for (let i=0; i<steps; i++){
+      const nx = e[kx] + vx*dt/steps; if (!blocked(nx, e[ky], e)) e[kx] = nx; else if (e !== player) return false;
+      const ny = e[ky] + vy*dt/steps; if (!blocked(e[kx], ny, e)) e[ky] = ny; else if (e !== player) return false;
+    }
     return true;
   }
   function faceToward(e, tx, ty){
@@ -195,6 +224,7 @@
     faceToward(n, player.x, player.y);
     faceToward(player, n.px, n.py);
     n.moving = false;
+    Input.reset();
     showLine();
     $("dialog").hidden = false; $("keyhint").hidden = true;
     Sound.talkStart();
@@ -209,20 +239,25 @@
     return best;
   }
   function hopOn(v){
+    if (blocked(v.px, v.py, v)){ toast("The forklift needs clear space before boarding."); return; }
+    Input.reset();
     driving = v; reversing = false;
     player.x = v.px; player.y = v.py; player.dir = v.dir;
     toast(`${P.name} hops on the ${v.name.toLowerCase()}. Press E / TALK again to hop off.`);
   }
   function hopOff(){
-    const v = driving, gap = FB + HB + 2;
+    const v = driving;
     // Step off to the side if there's room, otherwise out the back or front.
-    const spots = [[-gap, 0], [gap, 0], [0, 16], [0, -24]];
+    const box = footprint(player.x, player.y, player);
+    const spots = [[box.l-player.x-HB-2,0], [box.r-player.x+HB+2,0], [0,box.b-player.y+14], [0,box.t-player.y-2]];
+    v.px = player.x; v.py = player.y; v.dir = player.dir;
     driving = null;
     const spot = spots.find(([dx, dy]) => !blocked(player.x + dx, player.y + dy, player));
     if (!spot){ driving = v; toast("No room to hop off here!"); return; }
-    v.px = player.x; v.py = player.y; v.dir = player.dir;
     player.x += spot[0]; player.y += spot[1];
     reversing = false;
+    Input.reset();
+    saveProgress();
   }
 
   let toastTimer = null;
@@ -270,7 +305,11 @@
       const dir = Math.abs(mx) > Math.abs(my) ? (mx > 0 ? "right" : "left") : (my > 0 ? "down" : "up");
       // On the forklift, pushing opposite the forks backs it up instead of turning around.
       reversing = !!driving && dir === OPPOSITE[player.dir];
-      if (!reversing) player.dir = dir;
+      if (!reversing){
+        const oldDir = player.dir;
+        player.dir = dir;
+        if (driving && blocked(player.x, player.y, player)) player.dir = oldDir;
+      }
       const bx = player.x, by = player.y;
       const boost = boostT > 0 ? (boostKind === "energy" ? 3 : 1.6) : 1;
       const spd = SPEED * boost * (driving ? (driving.speed || 1.5) * (reversing ? .6 : 1) : 1);
@@ -344,7 +383,13 @@
     cam.x += (tx - cam.x) * Math.min(1, dt*8);
     cam.y += (ty - cam.y) * Math.min(1, dt*8);
 
-    $("talkBtn").classList.toggle("ready", !!(talk.who || nearestNpc()));
+    const nearbyNpc = nearestNpc(), nearbyVehicle = nearestVehicle();
+    const enter = nearbyVehicle && (!nearbyNpc || Math.hypot(nearbyVehicle.px-player.x, nearbyVehicle.py-player.y) < Math.hypot(nearbyNpc.px-player.x, nearbyNpc.py-player.y));
+    const available = !!(talk.who || driving || nearbyNpc || nearbyVehicle);
+    const label = talk.who ? "NEXT" : driving ? "EXIT" : enter ? "ENTER" : "TALK";
+    $("talkBtn").textContent = label;
+    $("talkBtn").setAttribute("aria-label", label);
+    $("talkBtn").classList.toggle("ready", available);
   }
 
   // ---------------------------------------------------------------- draw
@@ -518,7 +563,7 @@
     $("doneScreen").hidden = s !== "done";
     $("hud").hidden = s === "title";
     const touch = matchMedia("(pointer: coarse)").matches;
-    $("talkBtn").hidden = !(touch && s === "play" && (npcs.length || stations.length));
+    $("talkBtn").hidden = !(touch && s === "play" && (npcs.length || stations.length || vehicles.length));
     $("keyhint").hidden = !(!touch && s === "play" && !talk.who);
     if (s !== "play") Input.reset();
   }
@@ -552,8 +597,9 @@
   }
   addEventListener("resize", resize);
   addEventListener("orientationchange", () => setTimeout(resize, 200));
+  addEventListener("blur", () => Input.reset());
   addEventListener("pagehide", saveProgress);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveProgress(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden"){ Input.reset(); saveProgress(); } });
 
   // ---------------------------------------------------------------- loop
   let last = performance.now(), acc = 0;
@@ -582,6 +628,7 @@
   Game.debug = {
     teleport(x, y){ player.x = (x + .5) * TS; player.y = (y + 1) * TS - 2; cam.x = player.x - VW/2; cam.y = player.y - WORLD_VH/2; },
     where(){ return { x: Math.floor(player.x / TS), y: Math.floor((player.y - 2) / TS) }; },
+    blocked, footprint, move: moveEntity, get vehicles(){ return vehicles; }, get driving(){ return driving; },
     get people(){ return npcs; }, get player(){ return player; }, get hotdogs(){ return hotdogs; }, talk: () => action(),
   };
 })();

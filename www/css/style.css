@@ -40,7 +40,7 @@ canvas { display: block; image-rendering: auto; }
 .bubble::after { content: ""; position: absolute; left: 3px; bottom: -3px; border: 3px solid transparent; border-top-color: var(--paper); border-bottom: 0; }
 .spacer { flex: 1; }
 .hudbtn {
-  pointer-events: auto; height: 38px; padding: 0 12px; border: 0; border-radius: 3px;
+  pointer-events: auto; min-height: 44px; padding: 0 12px; border: 0; border-radius: 3px;
   background: rgba(12,13,17,.7); color: var(--paper);
   font-family: var(--display); font-size: 13px; letter-spacing: .08em; cursor: pointer;
 }
@@ -133,3 +133,13 @@ canvas { display: block; image-rendering: auto; }
   padding: 10px 16px; border-radius: 4px; border: 2px solid #16171c; box-shadow: 0 4px 0 rgba(0,0,0,.35);
   max-width: calc(100% - 32px); text-align: center; pointer-events: none;
 }
+
+/* Keep portraits and long existing dialogue readable on narrow phones. */
+@media (max-width: 540px) {
+  .dialog { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(116px + env(safe-area-inset-bottom, 0px)); padding: 10px 12px 20px; gap: 8px; max-height: 48%; overflow-y: auto; }
+  .dialog .portrait { width: 56px; height: 56px; }
+  .dialog .line { font-size: 16px; overflow-wrap: anywhere; }
+  .dialog .name { font-size: 13px; }
+  .hud { gap: 4px; font-size: 11px; }
+}
+.overlay { padding-top: max(16px, env(safe-area-inset-top, 0px)); padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); overflow-y: auto; }

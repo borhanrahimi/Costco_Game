@@ -29,6 +29,7 @@ window.Tiles = (() => {
   SOLID.add("r");
   // Collision-only diagonal wall; the connected facade supplies its artwork.
   SOLID.add("w");
+  LEGEND.w = "diagonal facade wall";
   SOLID.add("q");SOLID.add("e");
   LEGEND.q="self checkout";LEGEND.e="major appliances";
   for (const c of ["s", "t", "d", "p", "f"]) SOLID.add(c);
