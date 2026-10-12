@@ -140,6 +140,25 @@ window.Tiles = (() => {
     },
   };
   const PRODUCT_NAMES = Object.keys(PRODUCTS);
+  // Explicit stock for the north run. Keep these out of the random product list
+  // so the established south racks retain their existing contents.
+  PRODUCTS.soda = (R,x,y,w,h,seed) => {
+    const colors=["#bb3437","#376b9b","#43855f"];
+    R(x,y,w,h,colors[seed%colors.length]);
+    for(let yy=y+2;yy<y+h-3;yy+=8)for(let xx=x+2;xx<x+w-3;xx+=6){
+      R(xx,yy,4,6,colors[(seed+Math.floor(xx/6))%colors.length]);
+      R(xx,yy,4,1,"#d6dfd2");R(xx,yy+3,4,1,"#f3eddb");
+    }
+    R(x,y+h-2,w,2,"#6b4b36");
+  };
+  PRODUCTS.energy = (R,x,y,w,h,seed) => {
+    R(x,y,w,h,"#363f43");
+    for(let yy=y+2;yy<y+h-3;yy+=9)for(let xx=x+1;xx<x+w-3;xx+=5){
+      R(xx,yy,4,7,seed%2?"#e0e4d8":"#203941");R(xx,yy,4,1,"#a9beb6");
+      R(xx+1,yy+2,2,4,seed%2?"#63989b":"#a5ce52");
+    }
+    R(x,y+h-2,w,2,"#826345");
+  };
 
   // =========================================================== FLOORS
   const floorCache = new Map();
@@ -611,7 +630,24 @@ window.Tiles = (() => {
   Object.assign(PROPS,{tvDisplay:{w:3,h:1},tvShelf:{w:6,h:1},washerDisplay:{w:2,h:2},jewelryCounter:{w:6,h:1},employeeLocker:{w:1,h:1},opticalCounter:{w:4,h:1},opticalDisplay:{w:1,h:1},hearingDesk:{w:3,h:1},hearingDisplay:{w:1,h:1},foodKioskBank:{w:6,h:1},foodCourtTable:{w:3,h:2}});
   Object.assign(PROPS, { cornerDoor: { w:1, h:1 }, cornerWall: { w:1, h:1 } });
   Object.assign(PROPS, { cornerEntrance: { w:1, h:1 }, cornerExit: { w:1, h:1 } });
-  Object.assign(PROPS, { pharmacyShelf: { w:3, h:1 }, pharmacyCounter: { w:5, h:1 } });
+  Object.assign(PROPS, { pharmacyPrep: { w:3, h:1 }, pharmacyShelf: { w:3, h:1 }, pharmacyCounter: { w:5, h:1 }, pharmacyFacade: { w:20, h:1 } });
+  Object.assign(PROPS, { hearingBooths: { w:3, h:1 }, hearingServiceWest: { w:1, h:3 } });
+  PROPS.tireServiceCounter = { w:1, h:2 };
+  PROPS.candyShelf = { w:1, h:3 };
+  PROPS.medicineShelf = { w:1, h:3 };
+  PROPS.emergencyExit = { w:2, h:1 };
+  PROPS.proteinPallet = { w:2, h:2 };
+  const wallShelfTypes = ["chipsShelf","sodaShelf","energyShelf","cleaningShelf"];
+  for(const type of wallShelfTypes) PROPS[type]={w:3,h:1};
+  const medicinePallets = {
+    vitaminPallet:{label:"VITAMINS",color:"#66934e",bottles:true},
+    allergyPallet:{label:"ALLERGY",color:"#8a64a5",bottles:false},
+    painPallet:{label:"PAIN RELIEF",color:"#477bb2",bottles:true},
+    coldPallet:{label:"COLD / FLU",color:"#b84e46",bottles:false},
+    digestionPallet:{label:"DIGESTION",color:"#cf8a43",bottles:true},
+    firstAidPallet:{label:"FIRST AID",color:"#458c83",bottles:false},
+  };
+  for(const type of Object.keys(medicinePallets)) PROPS[type]={w:2,h:2};
   const propCache = new Map();
   function propImage(type, rotation = 0){
     if(rotation === -90){
@@ -626,6 +662,259 @@ window.Tiles = (() => {
     }
     if (propCache.has(type)) return propCache.get(type);
     let img = null;
+    if(type === "candyShelf"){
+      // North–south candy gondola with the orange warehouse-rack frame.
+      img=canvas(32,120,(g,R)=>{
+        R(0,0,32,118,"#a5521c");R(2,2,28,114,"#392a35");
+        for(let bay=0;bay<3;bay++){
+          const top=bay*32;
+          R(2,top+2,28,3,"#e2742c");R(2,top+2,28,1,"#f5a05c");
+          for(const y of [top+7,top+21]){
+            for(let i=0;i<4;i++){
+              const x=4+i*6,color=["#e6c33f","#d54450","#729e46","#8870b5","#418fac"][(i+bay*2+(y>top+10?1:0))%5];
+              R(x,y,5,11,color);R(x+1,y+3,3,3,"#fff0cb");R(x,y+9,5,2,"#b9a99a");
+            }
+            R(2,y+11,28,3,"#e2742c");R(2,y+11,28,1,"#f5a05c");R(2,y+13,28,1,"#a5521c");
+          }
+        }
+        R(0,0,2,118,"#f5a05c");R(30,0,2,118,"#a5521c");
+        R(1,115,30,4,"#7a3c14");
+      });
+    }
+    if(type === "medicineShelf"){
+      // Narrow gondola runs north–south without rotating bottle artwork,
+      // framed in the orange of the warehouse racks.
+      img=canvas(32,120,(g,R)=>{
+        R(0,0,32,118,"#a5521c");R(2,2,28,114,"#e6eae1");
+        for(let bay=0;bay<3;bay++){
+          const top=bay*32;
+          R(3,top+3,26,8,"#cbd5ce");
+          for(const y of [top+12,top+26]){
+            for(let i=0;i<4;i++){
+              const x=4+i*6;
+              R(x,y,5,10,i%2?"#f9f6e8":"#b7813f");R(x,y,5,2,"#fffef4");
+              R(x+1,y+4,3,4,["#4b91a0","#b84b53","#709a54","#8e70ab"][(i+bay)%4]);
+            }
+            R(2,y+11,28,2,"#e2742c");R(2,y+11,28,1,"#f5a05c");
+          }
+        }
+        R(0,0,2,118,"#f5a05c");R(30,0,2,118,"#a5521c");
+        R(1,115,30,4,"#7a3c14");
+      });
+    }
+    if(type === "tireServiceCounter"){
+      img=canvas(32,108,(g,R)=>{
+        // West-facing service desk just inside the Tire Center entrance.
+        R(1,101,30,6,"rgba(0,0,0,.18)");R(3,35,26,67,"#d1d7d0");
+        R(5,39,22,58,"#eef0e7");R(2,30,28,7,"#c32f34");
+        R(2,30,28,2,"#ed6760");R(3,37,4,61,"#a3222a");
+        R(27,38,2,60,"#99aaa0");R(3,99,26,3,"#536a60");
+        // Register, card reader and service paperwork on the worktop.
+        R(10,8,18,16,"#2c4149");R(12,10,14,10,"#9cc7c8");
+        R(17,24,4,6,"#6d8980");R(12,29,15,2,"#456361");
+        R(9,41,15,9,"#f8f1d9");R(11,44,11,1,"#667d78");R(11,47,8,1,"#b94443");
+        R(12,54,13,9,"#304a4e");R(14,56,9,3,"#9abfb9");
+        // Tire graphic and small service placard on the white cabinet front.
+        g.fillStyle="#263331";g.beginPath();g.ellipse(17,77,8,10,0,0,Math.PI*2);g.fill();
+        g.fillStyle="#99ada5";g.beginPath();g.ellipse(17,77,4,5,0,0,Math.PI*2);g.fill();
+        R(9,90,17,6,"#b32d32");g.font="bold 4px Arial, sans-serif";g.textAlign="center";g.fillStyle="#fff8e8";g.fillText("SERVICE",17,95);
+      });
+    }
+    if(medicinePallets[type]){
+      const stock=medicinePallets[type];
+      img=canvas(64,92,(g,R)=>{
+        // Same pallet footprint as protein displays, filled with distinct OTC
+        // cartons/bottles. Reusable art varies by category without brands.
+        R(1,85,62,6,"rgba(0,0,0,.2)");R(2,76,62,10,"#927047");R(2,76,62,3,"#c6a374");
+        for(const x of [5,25,45]){R(x,81,12,4,"#493b2b");R(x,85,12,2,"#b28c59");}
+        for(const y of [13,34,55]){
+          R(3,y+18,61,3,stock.color);R(3,y+18,61,1,shade(stock.color,1.25));
+          if(stock.bottles){
+            for(const x of [6,17,28,39,50]){
+              R(x,y+4,9,14,"#f3efe1");R(x+1,y+1,7,4,"#d2dcd2");
+              R(x,y+9,9,7,stock.color);R(x+2,y+11,5,2,"#fff9e7");
+              R(x+1,y+5,1,4,"#ffffff");
+            }
+          }else{
+            for(const x of [5,19,33,47]){
+              R(x,y+2,13,16,"#f1ecdb");R(x,y+2,13,4,stock.color);
+              R(x+2,y+8,9,2,stock.color);R(x+3,y+12,7,1,"#9caaa0");
+              if(type==="firstAidPallet"){R(x+5,y+7,3,8,stock.color);R(x+3,y+10,7,3,stock.color);}
+              R(x+12,y+6,1,12,"#b9c1b3");
+            }
+          }
+        }
+        R(5,65,55,10,"#faf4e4");R(5,65,55,2,stock.color);
+        g.font="bold 6px Arial, sans-serif";g.textAlign="center";g.fillStyle=stock.color;g.fillText(stock.label,32,73);
+        R(7,16,1,45,"rgba(255,255,255,.4)");R(52,17,2,44,"rgba(255,255,255,.25)");
+      });
+    }
+    if(type === "proteinPallet"){
+      img=canvas(64,92,(g,R)=>{
+        // Stacked shrink-wrapped protein shake cases on a wooden pallet.
+        R(1,85,62,6,"rgba(0,0,0,.2)");
+        R(2,76,62,10,"#927047");R(2,76,62,3,"#c6a374");
+        for(const x of [5,25,45]){R(x,81,12,4,"#493b2b");R(x,85,12,2,"#b28c59");}
+        for(const y of [17,36,55])for(const x of [5,33]){
+          const caseWidth=x===33?31:26; // Right edge sits flush against the wall.
+          R(x,y,caseWidth,21,"#e6dfcf");R(x,y+17,caseWidth,4,"#8a3940");
+          for(const dx of [3,9,15,21]){
+            R(x+dx,y+4,4,13,"#d6cdb6");R(x+dx,y+2,4,3,"#8b4941");
+            R(x+dx,y+8,4,6,"#f8f2df");R(x+dx+1,y+10,2,3,"#9c454b");
+          }
+          R(x+1,y+1,24,1,"#f7f1de");
+        }
+        R(4,9,60,9,"#cfbaa0");R(4,9,60,2,"#f0dfc5");
+        for(const x of [9,20,31,42,53]){R(x,12,5,3,"#8d4c46");R(x+1,12,3,1,"#bf7664");}
+        // Shared tray label makes the contents legible at game scale.
+        R(9,61,46,13,"#f5eedf");R(9,61,46,2,"#ae4047");
+        g.textAlign="center";g.fillStyle="#783d40";g.font="bold 7px Arial, sans-serif";g.fillText("PROTEIN",32,70);
+        R(7,19,1,56,"rgba(255,255,255,.4)");R(51,20,2,54,"rgba(255,255,255,.25)");
+        R(5,39,54,1,"rgba(255,255,255,.35)");R(5,58,54,1,"rgba(255,255,255,.35)");
+      });
+    }
+    if(wallShelfTypes.includes(type)){
+      // Reuse the exact top/front art used by the south-wall R tiles:
+      // same height, orange beams, green posts, overstock boxes and pallets.
+      const product={chipsShelf:"chips",sodaShelf:"soda",energyShelf:"energy",cleaningShelf:"detergent"}[type];
+      img=canvas(PROPS[type].w*TS,TS+HEIGHT.R,g=>{
+        for(let tile=0;tile<PROPS[type].w;tile++){
+          g.drawImage(rackTop(true,true,tile===0,false,tile+3),tile*TS,0);
+          g.drawImage(rackFront(product,product,tile===0,false,tile+3),tile*TS,TS);
+        }
+      });
+    }
+    if(type === "emergencyExit"){
+      img=canvas(64,88,(g,R)=>{
+        // Paired steel emergency doors with panic bars and vision panels.
+        // The map wall behind this decorative fixture keeps the exit closed.
+        R(1,82,62,5,"rgba(0,0,0,.18)");R(0,22,64,62,"#777e78");
+        R(3,24,58,57,"#bdc7be");
+        for(const x of [4,33]){
+          R(x,25,27,54,"#d7ded2");R(x+2,26,23,2,"#f1f4e7");
+          R(x+8,31,11,19,"#566f71");R(x+10,33,7,14,"#a1bfc0");
+          R(x+2,58,23,4,"#536965");R(x+3,58,21,1,"#c3d0c8");
+          R(x+2,73,23,4,"#a4b0a7");
+        }
+        R(31,24,2,57,"#697d74");R(0,81,64,3,"#87988c");
+        R(3,2,58,17,"#246b4d");R(4,3,56,2,"#5b9e75");
+        g.textAlign="center";g.fillStyle="#f7fff1";g.font="bold 10px Arial, sans-serif";g.fillText("EXIT",32,14);
+        R(7,19,50,3,"#c9d0bd");
+        R(6,65,52,7,"#b62c33");g.font="bold 4px Arial, sans-serif";g.fillStyle="#fff5e5";g.fillText("EMERGENCY EXIT",32,70);
+      });
+    }
+    if(type === "pharmacyFacade"){
+      const width=PROPS.pharmacyFacade.w*TS;
+      img=canvas(width,140,(g,R)=>{
+        const serviceWidth=width-4*TS; // Plain wall at the Hearing connection.
+        // Close references: broad white fascia, bright red Rx sign, framed
+        // a viewing window followed by the red service counter.
+        R(0,134,width,6,"rgba(0,0,0,.2)");
+        R(0,2,width,133,"#dadbd2");R(3,6,width-6,125,"#f5f3e9");
+        R(0,2,width,3,"#ac8d64");R(0,5,width,2,"#e7d3af");
+        R(width-3,6,3,127,"#a8afa8");
+        R(13,11,serviceWidth-26,31,"#dc3029");R(14,11,serviceWidth-28,3,"#f65443");
+        R(14,39,serviceWidth-28,3,"#aa241f");
+        g.textAlign="left";g.font="bold 26px Georgia, serif";g.fillStyle="#fff9ec";g.fillText("℞",26,35);
+        g.font="bold 21px Arial, sans-serif";g.fillText("PHARMACY",63,34);
+        g.font="bold 5px Arial, sans-serif";g.fillText("DEPARTMENT",63,40);
+        // Service windows stop before the solid wall joining Hearing.
+        for(const [bay,label] of [[0,"PRESCRIPTION PICK-UP / DROP-OFF"],[1,""],[2,""],[3,""]]){
+          const x=10+bay*123, w=118;
+          g.font="bold 6px Arial, sans-serif";g.textAlign="center";g.fillStyle="#ae3431";g.fillText(label,x+w/2,53);
+          R(x,59,w,49,"#9ba9a5");R(x+3,62,w-6,44,"#d5ddd2");
+          // Lit interior shelving is visible through the glass, behind terminals.
+          R(x+6,65,w-12,3,"#fff9df");
+          for(const sy of [72,84,96]){
+            R(x+6,sy+8,w-12,2,"#9aa89e");
+            for(let i=0;i<13;i++){
+              const bx=x+7+i*8, color=["#eae7d3","#c59a52","#6396a6","#b3728d"][((i+bay)%4)];
+              R(bx,sy,5,8,color);R(bx,sy,5,2,"#fffdf0");R(bx+1,sy+4,3,2,"#f7f4e3");
+            }
+          }
+          // Supplies and dispensing equipment sit INSIDE the viewing bays;
+          // the public side remains a plain window without a service ledge.
+          if(bay>0){
+            R(x+7,97,103,3,"#f7f4e8");R(x+7,100,103,6,"#aebdb4");
+            for(const cx of [9,30,51,72,93]){
+              R(x+cx,101,18,5,"#e6e9df");R(x+cx+7,102,4,1,"#697f7c");
+            }
+            if(bay===1){
+              // Label printer, amber prescription bottles, and counting tray.
+              R(x+12,89,19,8,"#d8ded8");R(x+15,91,12,3,"#526e74");
+              R(x+21,95,8,4,"#fff9e8");
+              for(const bx of [39,47,55]){R(x+bx,90,5,7,"#bb8337");R(x+bx,88,5,2,"#faf9e9");}
+              R(x+78,94,23,3,"#6a9b9a");R(x+81,92,17,2,"#e4eee2");
+            }else if(bay===2){
+              // Workstation, keyboard and stacked supply cartons.
+              R(x+13,84,23,12,"#334c54");R(x+16,86,17,7,"#99c5c8");
+              R(x+23,96,3,2,"#596f73");R(x+40,95,19,2,"#617a7b");
+              for(const bx of [72,87]){R(x+bx,86,12,11,"#e0c594");R(x+bx+2,89,8,3,"#f8f1dc");}
+            }else{
+              // Small refrigerated medicine cabinet and packed pickup bins.
+              R(x+10,72,24,25,"#e7eee5");R(x+12,74,20,19,"#8eb0b0");
+              R(x+14,80,16,1,"#dbe9dc");R(x+14,87,16,1,"#dbe9dc");R(x+29,82,1,6,"#4e6c6d");
+              for(const bx of [45,66,87]){R(x+bx,90,17,7,"#708f9a");R(x+bx+2,87,13,5,"#f3e8c9");R(x+bx+5,89,7,1,"#a1ac9d");}
+            }
+          }
+          // Decorative pharmacy staff, seen through the glass. They reuse the
+          // employee sprite art but are not interactive NPCs or dialogue targets.
+          if(bay>0){
+            const staffLooks=[
+              { ...Outfit.pharmacy, skin:Colors.skin[3], hair:Colors.hair[0], glasses:true },
+              { ...Outfit.pharmacy, skin:Colors.skin[1], hair:Colors.hair[3], longHair:true },
+              { ...Outfit.pharmacy, skin:Colors.skin[4], hair:Colors.hair[1] },
+            ];
+            g.save();g.beginPath();g.rect(x+3,62,w-6,44);g.clip();
+            Sprites.person(g,x+(bay===2?84:48),116,bay===2?"left":"right",0,staffLooks[bay-1]);
+            g.restore();
+          }
+          // Thin aluminum outer frames and white vertical mullions.
+          R(x,58,w,2,"#aeb8ae");R(x,60,3,48,"#ffffff");
+          R(x+w-3,60,3,48,"#f9f9ef");R(x+w-5,62,2,44,"#9dada7");
+          R(x+56,62,3,44,"#f5f7ef");R(x+59,62,1,44,"#9baaa7");
+          R(x+7,64,1,38,"rgba(255,255,255,.4)");
+          if(bay===0){
+            R(x+76,86,25,17,"#293c42");R(x+79,89,19,10,"#648d9b");
+            R(x+86,103,4,5,"#7b8f8e");R(x+101,98,9,10,"#2d4045");
+            R(x+103,100,5,3,"#abc6c3");
+          }
+          // Small notices posted above each service bay.
+          R(x+7,54,13,3,"#e0dace");R(x+8,55,10,1,"#aaa899");
+        }
+        // From Hearing: plain wall → clear viewing window → service counter.
+        // The viewing bay has a white sill, without a red ledge or equipment.
+        for(const bay of [1,2,3]){
+          const x=10+bay*123;
+          R(x,108,118,3,"#ffffff");R(x,111,118,2,"#b8c3b7");
+          R(x,113,118,19,"#f5f3e9");
+        }
+        R(0,108,128,8,"#b42d30");R(0,108,128,2,"#ee5148");
+        R(0,115,128,2,"#842728");R(3,117,125,15,"#eeece2");
+        for(let x=3;x<124;x+=63){R(x,117,2,15,"#bfc4ba");R(x+3,118,57,2,"#fffdf4");}
+        R(0,132,width,3,"#313b38");
+        // Red countertop dividers and a pickup information placard.
+        R(123,91,4,17,"#b32d30");R(123,91,4,2,"#e6574c");
+        R(22,88,16,19,"#ba2b2f");
+        for(const y of [92,96,100])R(25,y,10,1,"#fff4de");
+        // The four tiles beside Hearing are a full-height plain wall, not a
+        // service counter. Its solid footprint remains part of this fixture.
+        R(serviceWidth,6,width-serviceWidth-3,126,"#f5f3e9");
+        R(serviceWidth,6,2,126,"#d2d5ca");
+        R(serviceWidth+2,7,width-serviceWidth-5,2,"#fffdf3");
+        R(serviceWidth,132,width-serviceWidth,3,"#313b38");
+      });
+    }
+    if(type === "pharmacyPrep"){
+      img=canvas(96,60,(g,R)=>{
+        R(2,54,92,5,"rgba(0,0,0,.18)");R(3,32,90,23,"#c1cec6");
+        R(5,35,86,18,"#eef0e5");R(1,27,94,7,"#8eaaa9");R(2,27,92,2,"#faf9ee");
+        for(const x of [5,34,63]){R(x,35,1,18,"#a9b9ae");R(x+11,39,6,2,"#6e8783");}
+        R(58,7,24,17,"#2f484f");R(61,10,18,10,"#91c5c9");R(68,24,4,4,"#688480");
+        R(42,25,15,2,"#556f71");R(8,18,20,9,"#d8e0d7");R(11,20,14,3,"#627c80");
+        for(const x of [31,38]){R(x,18,5,9,"#bd8b43");R(x,16,5,2,"#fffbed");}
+      });
+    }
     if(type === "pharmacyShelf"){
       img=canvas(96,84,(g,R)=>{
         // White prescription shelving, with three orderly rows of bottles.
@@ -700,12 +989,57 @@ window.Tiles = (() => {
         R(39,38,18,8,"#f4f1e8");R(43,40,10,2,"#315b91");
       });
     }
+    if(type === "hearingBooths"){
+      img=canvas(96,100,(g,R)=>{
+        // Two white testing booths with narrow glazed doors, from the reference.
+        R(1,94,94,5,"rgba(0,0,0,.18)");
+        R(1,27,94,69,"#e5e7de");R(2,28,92,5,"#ffffff");
+        R(2,36,92,2,"#b9c2b9");
+        for(const x of [4,53]){
+          R(x,39,39,54,"#faf8ed");R(x,39,39,3,"#ffffff");
+          R(x+5,45,27,47,"#a6afa8");R(x+7,47,23,44,"#e0d9bd");
+          R(x+10,51,16,25,"#465a60");R(x+12,53,12,21,"#a2b9b8");
+          R(x+11,62,14,1,"#dce4db");R(x+25,80,2,5,"#606e6e");
+          R(x+2,89,33,3,"#c0c4b7");
+        }
+        R(44,40,6,53,"#b9c2b9");R(45,41,4,50,"#f1efe5");
+        R(1,93,94,3,"#73807b");
+        // Broad overhead banner remains part of the depth-sorted fixture.
+        R(0,3,96,21,"#bd1d2a");R(0,3,96,2,"#e43a41");
+        R(0,22,96,2,"#8c1925");
+        g.font="bold 7px Arial, sans-serif";g.textAlign="center";g.fillStyle="#fff9ef";
+        g.fillText("HEARING AID CENTER",48,16);
+        R(31,29,34,6,"#d0e4e1");
+        g.font="bold 4px Arial, sans-serif";g.fillStyle="#3a6e85";g.fillText("FREE HEARING TEST",48,34);
+      });
+    }
+    if(type === "hearingServiceWest"){
+      // Draw directly in the map's west-facing orientation; rotating a complete
+      // upright sprite would rotate the cabinet height into the floor footprint.
+      img=canvas(32,124,(g,R)=>{
+        R(1,117,30,6,"rgba(0,0,0,.18)");
+        R(3,24,26,96,"#e9ece3");R(4,25,24,3,"#ffffff");
+        R(3,28,4,90,"#bf3038");R(3,28,2,90,"#e55555");
+        R(8,34,18,57,"#a8bfbe");R(10,36,14,53,"#e6efdf");
+        for(const y of [40,57,74]){
+          R(10,y+10,14,2,"#a8b5aa");
+          R(12,y,9,6,"#fffbed");R(14,y+2,4,2,"#698585");
+          R(12,y+7,3,2,"#a59d7b");
+        }
+        R(8,92,19,23,"#f8f7ef");R(16,93,1,22,"#bac4b9");
+        R(12,96,2,2,"#64726c");R(20,96,2,2,"#64726c");
+        R(5,116,24,4,"#98a6a0");
+        R(10,10,18,13,"#293a42");R(12,12,14,8,"#9ac2cb");
+        R(17,23,4,6,"#6c817e");R(14,29,11,2,"#4b605d");
+        R(10,101,14,8,"#eeeece");R(12,103,10,2,"#b33b3d");
+      });
+    }
     if(type === "hearingDisplay"){
       img=canvas(32,38,(g,R)=>{
-        R(3,33,27,4,"rgba(0,0,0,.18)");R(3,20,27,14,"#8d9698");
+        R(3,33,27,4,"rgba(0,0,0,.18)");R(3,20,27,14,"#e9ece3");
         R(5,12,23,11,"#dcebea");R(7,14,19,7,"#f5f3e9");
         R(4,10,25,4,"#a9c4c7");R(8,16,5,3,"#59666b");
-        R(19,15,4,5,"#59666b");R(10,17,10,1,"#315c94");R(6,24,21,2,"#c32930");
+        R(19,15,4,5,"#59666b");R(10,17,10,1,"#315c94");R(3,22,27,2,"#c32930");R(6,27,21,1,"#aab6ad");
       });
     }
     if(type === "hearingDesk"){

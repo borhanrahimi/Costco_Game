@@ -235,7 +235,6 @@
     // Carts sit outside the diagonal doors, leaving the approach open.
     {type:"cartCorral",x:113,y:88},
     {type:"cartCorral",x:122,y:79,rotation:-90},
-    {type:"basketStack",x:124,y:87},
     {type:"merchandiseRun",x:99,y:59,solid:false},
     ...lanes.map(y => ({type:"checkoutLane",x:100,y})),
     ...[100,103].flatMap(x=>[52,54,56].map(y=>({type:"selfCheckout",x,y,solid:false}))),
@@ -307,13 +306,10 @@
   const simplified=layout.tiles.map(row=>row.split(""));
   for(let y=77;y<=85;y++)for(let x=100;x<=107;x++)
     if(["V","e"].includes(simplified[y][x]))simplified[y][x]=".";
-  const fixture=(x,y,w,h)=>{for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)simplified[yy][xx]="e";};
-  for(const x of [102,106])fixture(x,85,3,1);
-  for(const x of [93,96,99])fixture(x,84,2,2);
-  fixture(90,79,6,1);
-  // Long orange warehouse aisle continues horizontally west from the washer
-  // section to the interior end wall, with one tile of transition space.
-  for(let x=21;x<=91;x++)if(simplified[86][x]===".")simplified[86][x]="R";
+  // TV, washer and jewelry displays are temporarily omitted from this view.
+  // Extend the south-wall racks toward the entrance, leaving x:108–110
+  // clear before the diagonal vestibule begins at x:111.
+  for(let x=21;x<=107;x++)if(simplified[86][x]===".")simplified[86][x]="R";
   // Checkout boundary shown by the red markup. It stops three tiles before
   // Register 1 so employees and members can walk through the opening.
   for(let y=3;y<=30;y++)simplified[y][102]="W";
@@ -327,9 +323,12 @@
   for(let y=11;y<=13;y++)simplified[y][98]="K";
   // Enclose Pharmacy for now: north and checkout walls form the back/right,
   // and a west wall joins the closed frontage to Hearing's upper boundary.
-  for(let y=3;y<=9;y++)simplified[y][89]="W";
-  for(const x of [90,91])simplified[9][x]="W";
-  simplified[10][98]="W";
+  for(let y=3;y<=10;y++)simplified[y][81]="W";
+  // Emergency exit immediately west of Pharmacy, set into the north wall.
+  // Keep the wall collision intact: these doors are decorative for now.
+  // The continuous solid pharmacy facade closes the entire frontage at y:9.
+  // Its plain-wall end meets Hearing's booths directly; no extra wall tile
+  // projects into the aisle at x:98,y:10, keeping the counter/wall edge straight.
   // Replace the scattered food-court table tiles with organized seating props.
   for(let y=52;y<=60;y++)for(let x=107;x<=117;x++)if(simplified[y][x]==="T")simplified[y][x]=".";
   // Join the straight run to the office frontage beside Register 1.
@@ -337,19 +336,46 @@
   layout.tiles=simplified.map(row=>row.join(""));
   layout.props=layout.props.filter(p=>!["forklift","majorAppliance"].includes(p.type));
   layout.props.push(
+    // Candy shelves occupy the marked rectangle as north–south runs; the
+    // three floor columns between each run are walking aisles. A cross
+    // aisle at y:41–43 lines up with Register 5 and halves every run.
+    ...[75,79,83,87,91].flatMap(x=>[35,38,44,47].map(y=>({type:"candyShelf",x,y}))),
+    // Five north–south medicine runs below Pharmacy; x:94–97 stays open
+    // as the walkway in front of Hearing and Optical. Two clear floor
+    // columns separate the shelves, with cross aisles at both ends.
+    ...[81,84,87,90,93].flatMap(x=>[14,17,20,23,26,29].map(y=>({type:"medicineShelf",x,y}))),
+    // Tire service desk set farther inside the shop, leaving space between
+    // the counter and the warehouse-side entrance at x:118,y:61–63.
+    {type:"tireServiceCounter",x:122,y:61},
+    // Continuous north-wall shelving, west of the emergency exit. From the
+    // door outward: chips, soda, energy drinks, then cleaning to the west end.
+    // x:75–80 stays clear for the emergency-door approach.
+    ...Array.from({length:24},(_,i)=>{
+      const x=3+i*3;
+      return {type:x>=63?"chipsShelf":x>=48?"sodaShelf":x>=33?"energyShelf":"cleaningShelf",x,y:3};
+    }).filter(p=>[0,1,2].every(dx=>!Tiles.SOLID.has(simplified[p.y][p.x+dx]))),
+    {type:"emergencyExit",x:78,y:2,solid:false},
+    // Protein drink pallets against Pharmacy's west wall. Keep the two floor
+    // rows directly in front of the emergency doors free of merchandise.
+    ...[5,7,9].map(y=>({type:"proteinPallet",x:79,y})),
+    // Continue flush beneath the front viewing windows. The pickup counter
+    // at x:82–85 stays clear so Preston can still approach Saniya.
+    ...["vitaminPallet","allergyPallet","painPallet","coldPallet","digestionPallet","firstAidPallet"]
+      .map((type,i)=>({type,x:86+i*2,y:10})),
     // Pharmacy follows Hearing northward, running horizontally along the wall.
-    // Closed frontage touches Hearing; no player entrance is open for now.
-    ...[90,93,96,99].map(x=>({type:"pharmacyShelf",x,y:3})),
-    ...[92,97].map(x=>({type:"pharmacyCounter",x,y:9})),
-    ...[82,86].map(x=>({type:"tvDisplay",x,y:83})),
-    ...[68,71,74,77,80].map(y=>({type:"tvShelf",x:82,y})),
-    ...[93,96,99].map(x=>({type:"washerDisplay",x,y:84,solid:false})),
-    {type:"jewelryCounter",x:90,y:79,solid:false},
+    // The frontage ends in a plain wall at Hearing; service windows start
+    // west of that wall. No player entrance is open for now.
+    ...[82,85,90,93,96,99].map(x=>({type:"pharmacyShelf",x,y:3})),
+    // Stock and dispensing workstations fill the staff-only interior while
+    // keeping Saniya's space behind the pickup counter clear.
+    ...[90,93].map(x=>({type:"pharmacyShelf",x,y:5})),
+    ...[88,94,98].map(x=>({type:"pharmacyPrep",x,y:7})),
+    {type:"pharmacyFacade",x:82,y:9, staff:"Saniya", staffWindow:{x:10,y:62,w:112,h:44}},
     {type:"foodKioskBank",x:111,y:51},
     ...[53,57].flatMap(y=>[107,112].map(x=>({type:"foodCourtTable",x,y}))),
     {type:"opticalCounter",x:98,y:20,solid:false},
-    {type:"hearingDesk",x:98,y:11,rotation:-90,solid:false},
-    ...[99,100,101].map(x=>({type:"hearingDisplay",x,y:10})),
+    {type:"hearingServiceWest",x:98,y:11,solid:false},
+    {type:"hearingBooths",x:99,y:10},
     ...[15,16].map(y=>({type:"hearingDisplay",x:98,y})),
     ...[11,12,13,14,15,16].map(y=>({type:"hearingDisplay",x:101,y})),
     ...[98,99,100,101].map(x=>({type:"hearingDisplay",x,y:17})),
@@ -366,12 +392,7 @@
   if(foodCourtSign){foodCourtSign.x=114;foodCourtSign.y=45.5;}
   layout.signs=layout.signs.filter(s=>s.text!=="MAJOR APPLIANCES");
   layout.signs.push(
-    {text:"PHARMACY",x:95,y:6.5,kind:"dept"},
-    {text:"HEARING",x:99.5,y:9,kind:"dept"},
     {text:"OPTICAL",x:99.5,y:19,kind:"optical"},
-    {text:"TVs",x:85,y:66.5,kind:"dept"},
-    {text:"WASHERS",x:97,y:82.5,kind:"dept"},
-    {text:"JEWELRY",x:93,y:77.5,kind:"dept"},
   );
   layout.floorLines=layout.floorLines.filter(line=>line.x>=120);
   Game.setMap(layout);

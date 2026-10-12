@@ -86,6 +86,7 @@
         id: i, name: c.name, role: c.role || "", look: { ...Outfit.staff, ...(c.look || {}) }, portrait: c.portrait || null,
         since: c.employeeSince || null,
         nameTag: c.nameTag !== false, angry: !!c.angry, wander: !!c.wander, voice: c.voice || {},
+        interactionRange: c.interactionRange || TALK_RANGE,
         lines: readConversation(c),
         px, py, hx: px, hy: py, dir: pos.facing || "down",
         talked: false, anim: 0, moving: false, wt: 1 + Math.random() * 3, wdx: 0, wdy: 0, madT: 0,
@@ -180,11 +181,11 @@
   const curLine = () => talk.who.lines[talk.idx];
 
   function nearestNpc(){
-    let best = null, bd = TALK_RANGE;
+    let best = null, bd = Infinity;
     if (driving) return null;
     for (const n of [...npcs, ...stations]){
       const d = Math.hypot(n.px - player.x, n.py - player.y);
-      if (d < bd){ bd = d; best = n; }
+      if (d < (n.interactionRange || TALK_RANGE) && d < bd){ bd = d; best = n; }
     }
     return best;
   }
@@ -453,6 +454,16 @@
       } else if (it.prop){
         const img = Tiles.propImage(it.prop.type, it.prop.rotation);
         if (img) ctx.drawImage(img, it.prop.x*TS, (it.prop.y + it.prop.size.h)*TS - img.height);
+        // A staffed service window reveals the employee behind an opaque facade.
+        // Clip to its glass opening so the counter still hides the lower body.
+        if (img && it.prop.staff && it.prop.staffWindow){
+          const n = npcs.find(n => n.name === it.prop.staff), w = it.prop.staffWindow;
+          if (n){
+            ctx.save(); ctx.beginPath();
+            ctx.rect(it.prop.x*TS+w.x, (it.prop.y+it.prop.size.h)*TS-img.height+w.y, w.w, w.h);
+            ctx.clip(); Sprites.person(ctx, n.px, n.py+8, n.dir, 0, n.look); ctx.restore();
+          }
+        }
       } else if (it.npc){
         const e = it.npc, f = e.moving ? Math.floor(e.anim/10) % 4 : 0;
         if (e.angry && e.madT > 0){
