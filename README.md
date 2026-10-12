@@ -165,11 +165,13 @@ You need Xcode (Mac App Store) and Node.js (nodejs.org).
 
 ```bash
 cd prestons-shift
-npm install @capacitor/core @capacitor/ios
-npm install -D @capacitor/cli
-npm run ios:add      # creates the ios/ folder (first time only)
+npm ci
+npm test
+npm run ios:sync     # copies the current game into the existing ios/ project
 npm run ios:open     # opens the project in Xcode
 ```
+
+The generated project uses Swift Package Manager and pinned Capacitor 8 packages. Xcode resolves its native dependencies on first open; no CocoaPods installation is needed. Portrait and landscape are both supported.
 
 In Xcode: select the **App** project → **Signing & Capabilities** → choose your Apple ID team. Plug in your iPhone, turn on **Developer Mode** on the phone (Settings → Privacy & Security), pick the phone at the top of Xcode and press **▶ Run**.
 

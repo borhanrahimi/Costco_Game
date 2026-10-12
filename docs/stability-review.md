@@ -51,3 +51,7 @@ No real browser automation or iPhone hardware verification was available during 
 Open `www/index.html` directly, or run `python3 -m http.server 8080 --directory www` and visit `http://localhost:8080`. Use WASD/arrows, Space/E to interact, and M for the map. Run `npm run bundle` to regenerate `dist/prestons-shift.html` after edits.
 
 After browser/manual checks pass, follow the existing README Capacitor setup, sync `www` with `npm run ios:sync`, and run via Xcode on an iPhone. Verify WKWebView persistence across app restarts, multitouch, audio unlock, notch/home-indicator safe areas, offline operation and both orientations. Capacitor packages are not currently declared; installing them and generating native projects is deferred until browser acceptance.
+
+## Subsequent iOS setup
+
+Capacitor dependencies and the native Xcode project have since been added. The unsigned iPhone build passed; follow [iPhone testing](iphone-testing.md) for signing and device acceptance. This supersedes the deferred setup status above.
