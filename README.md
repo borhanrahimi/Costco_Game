@@ -105,7 +105,7 @@ Preston's was made with `--crop 150,799,879` from `design/preston-photo.jpg`. A 
 
 The game is drawn in a 3/4 view: racks, coolers and counters stand up off the floor, and Preston can walk behind them. Racks fill themselves with different products bay by bay (water, paper towels, cereal, detergent, cans, snacks, coffee, wine, pet food, TVs, cases, diapers). All of that art lives in `www/js/tiles.js`.
 
-The current map is based on Costco Warehouse #693 at Sonterra Park, 1201 N Loop 1604 E in San Antonio. Its 94-by-135-tile layout includes receiving, bakery, meat, dairy, deli, produce, grocery, freezers, pharmacy, optical, hearing aids, checkout, membership, food court, offices, break room, public and employee restrooms, and the Tire Center. Preston starts by his forklift in receiving.
+The active map is a **136-by-90-tile temporary simplified editing view**, with the entrance at the southeast and services on the east wall. Earlier full-warehouse generation remains in the file but is deliberately cleared in many areas. Preston starts near the southeast entrance. Preserve the final editing pass and approved positions when adding details; do not restore the full warehouse blindly. See [the stability review](docs/stability-review.md) for implemented sections, reference gaps and manual checks.
 
 Open `www/maps/warehouse.js`. Each letter is one square:
 
@@ -184,3 +184,7 @@ node tools/bundle.js
 ```
 
 That writes `dist/prestons-shift.html`, the whole game in one file you can send to anyone.
+
+## Validate changes
+
+Run `npm test` for map, asset, collision, dialogue, vehicle and saving checks. These use lightweight browser stubs; real browser and iPhone visual/touch testing is still required. See [the review and test checklist](docs/stability-review.md).

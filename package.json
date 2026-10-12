@@ -4,6 +4,7 @@
   "description": "A top-down warehouse game starring Preston, made for iPhone.",
   "private": true,
   "scripts": {
+    "test": "node tools/check.js",
     "bundle": "node tools/bundle.js",
     "ios:add": "npx cap add ios",
     "ios:sync": "npx cap sync ios",
