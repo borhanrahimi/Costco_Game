@@ -332,6 +332,11 @@
   layout.tiles=simplified.map(row=>row.join(""));
   layout.props=layout.props.filter(p=>!["forklift","majorAppliance"].includes(p.type));
   layout.props.push(
+    // Pharmacy follows Hearing northward, running horizontally along the wall.
+    // Two clear staff-floor rows separate the shelf and service-counter runs;
+    // x:90–91 remains an open entrance at the west end of the counter.
+    ...[90,93,96,99].map(x=>({type:"pharmacyShelf",x,y:3})),
+    ...[92,97].map(x=>({type:"pharmacyCounter",x,y:6})),
     ...[82,86].map(x=>({type:"tvDisplay",x,y:83})),
     ...[68,71,74,77,80].map(y=>({type:"tvShelf",x:82,y})),
     ...[93,96,99].map(x=>({type:"washerDisplay",x,y:84,solid:false})),
@@ -357,6 +362,7 @@
   if(foodCourtSign){foodCourtSign.x=114;foodCourtSign.y=45.5;}
   layout.signs=layout.signs.filter(s=>s.text!=="MAJOR APPLIANCES");
   layout.signs.push(
+    {text:"PHARMACY",x:96,y:2.5,kind:"dept"},
     {text:"HEARING",x:99.5,y:9,kind:"dept"},
     {text:"OPTICAL",x:99.5,y:19,kind:"optical"},
     {text:"TVs",x:85,y:66.5,kind:"dept"},

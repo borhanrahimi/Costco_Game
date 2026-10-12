@@ -611,6 +611,7 @@ window.Tiles = (() => {
   Object.assign(PROPS,{tvDisplay:{w:3,h:1},tvShelf:{w:6,h:1},washerDisplay:{w:2,h:2},jewelryCounter:{w:6,h:1},employeeLocker:{w:1,h:1},opticalCounter:{w:4,h:1},opticalDisplay:{w:1,h:1},hearingDesk:{w:3,h:1},hearingDisplay:{w:1,h:1},foodKioskBank:{w:6,h:1},foodCourtTable:{w:3,h:2}});
   Object.assign(PROPS, { cornerDoor: { w:1, h:1 }, cornerWall: { w:1, h:1 } });
   Object.assign(PROPS, { cornerEntrance: { w:1, h:1 }, cornerExit: { w:1, h:1 } });
+  Object.assign(PROPS, { pharmacyShelf: { w:3, h:1 }, pharmacyCounter: { w:5, h:1 } });
   const propCache = new Map();
   function propImage(type, rotation = 0){
     if(rotation === -90){
@@ -625,6 +626,38 @@ window.Tiles = (() => {
     }
     if (propCache.has(type)) return propCache.get(type);
     let img = null;
+    if(type === "pharmacyShelf"){
+      img=canvas(96,84,(g,R)=>{
+        // White prescription shelving, with three orderly rows of bottles.
+        R(2,78,92,5,"rgba(0,0,0,.18)");
+        R(2,5,92,74,"#bfc8c8"); R(6,8,84,65,"#e8eee8");
+        for(const y of [11,31,51]){
+          for(let i=0;i<9;i++){
+            const x=9+i*9;
+            R(x,y+3,6,13,i%3===0?"#c28538":"#faf7e8");
+            R(x,y+1,6,3,"#f9fbfa");R(x+1,y+8,4,4,i%2?"#568b99":"#b94340");
+          }
+          R(6,y+17,84,3,"#a8b8b9");R(6,y+17,84,1,"#ffffff");
+        }
+        R(2,5,3,73,"#f5f6ee");R(91,5,3,73,"#8d9c9d");
+        R(3,75,90,4,"#65777c");
+      });
+    }
+    if(type === "pharmacyCounter"){
+      img=canvas(160,62,(g,R)=>{
+        // Horizontal service counter: matching white top and red Costco trim.
+        R(2,56,156,5,"rgba(0,0,0,.18)");
+        R(2,29,156,28,"#d7ded9");R(5,33,150,20,"#eef0e7");
+        R(2,29,156,5,"#bd3038");R(2,53,156,4,"#77898c");
+        R(1,22,158,8,"#a9b9bb");R(2,22,156,3,"#fafaf0");
+        R(112,5,25,16,"#293a42");R(115,8,19,10,"#9acbd0");
+        R(122,21,4,5,"#647c83");R(116,26,17,2,"#4d656d");
+        R(142,16,11,12,"#334951");R(144,18,7,5,"#b0d8cf");
+        R(14,35,20,15,"#f8f8ee");R(22,37,4,11,"#347c72");R(18,41,12,3,"#347c72");
+        R(44,38,55,3,"#819b9f");R(44,44,35,2,"#a3b4b3");
+        R(45,18,22,4,"#f7f4e5");R(47,19,13,1,"#4b7890");
+      });
+    }
     if(type === "tvShelf"){
       img=canvas(192,96,(g,R)=>{
         R(4,88,184,6,"rgba(0,0,0,.2)");
