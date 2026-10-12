@@ -57,6 +57,9 @@ for(let i=0;i<queue.length;i++) for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]
   if(x<0||y<0||x>=width||y>=map.tiles.length||reached.has(key)||Tiles.SOLID.has(map.tiles[y][x])||occupied.has(key)) continue;
   reached.add(key);queue.push([x,y]);
 }
+// Pharmacy is intentionally closed; Hearing's west entrance stays usable.
+assert(!reached.has('95,5'), 'Closed pharmacy interior is reachable');
+assert(reached.has('98,14'), 'Pharmacy wall blocks Hearing entrance');
 for(const c of Game.characters) assert(reached.has(c.position.x+','+c.position.y),`Unreachable employee ${c.name}`);
 for(const s of Game.stations) assert(queue.some(([x,y])=>Math.hypot((x-s.position.x)*32,(y-s.position.y)*32-2)<56),`Unreachable station ${s.name}`);
 for(let y=0;y<map.tiles.length;y++) for(let x=0;x<width;x++) if(map.tiles[y][x]==='M') assert(reached.has(x+','+y),`Blocked doorway ${x},${y}`);
