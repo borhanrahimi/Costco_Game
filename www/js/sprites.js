@@ -365,6 +365,25 @@ window.Sprites = (() => {
   // Hanging signs from the map file. `brand` draws the familiar warehouse wordmark.
   function sign(g, text, cx, cy, kind = "dept"){
     if (kind === "menu") return menuBoard(g, text, cx, cy);
+    if (kind === "rackNumber"){
+      // Coordinates mark the attachment on the rack. Raise the placard
+      // above the stock on a green steel upright, like the warehouse signs.
+      const x=Math.round(cx*TS), y=Math.round(cy*TS)-44;
+      const postX=x+(Number(text)%2?-10:10);
+      g.fillStyle="#3d6454";g.fillRect(postX-2,y+8,5,39);
+      g.fillStyle="#8aaa87";g.fillRect(postX-2,y+8,1,39);
+      for(let bolt=0;bolt<4;bolt++){
+        g.fillStyle="#243f35";g.fillRect(postX,y+14+bolt*8,1,2);
+      }
+      g.fillStyle="#6d8976";g.fillRect(Math.min(x,postX),y+7,Math.abs(x-postX)+2,3);
+      g.fillStyle="rgba(0,0,0,.2)";g.fillRect(x-14,y-9,31,23);
+      g.fillStyle="#b9c2b7";g.fillRect(x-16,y-12,32,24);
+      g.fillStyle="#fffdf1";g.fillRect(x-15,y-11,30,22);
+      g.font="bold 15px Arial, sans-serif";
+      g.textAlign="center";g.textBaseline="middle";
+      g.fillStyle="#c22d23";g.fillText(text,x,y+1);
+      return;
+    }
     if (kind === "brand"){
       const x=Math.round(cx*TS-96), y=Math.round(cy*TS-36);
       g.fillStyle="rgba(25,29,27,.25)"; g.fillRect(x+4,y+5,192,72);

@@ -333,9 +333,48 @@
   for(let y=52;y<=60;y++)for(let x=107;x<=117;x++)if(simplified[y][x]==="T")simplified[y][x]=".";
   // Join the straight run to the office frontage beside Register 1.
   for(let x=111;x<=113;x++)simplified[33][x]="W";
+  // Open the west-side partitions marked with red Xs, removing the old
+  // room dividers and frontage across the marked horizontal runs.
+  for(const y of [34,46])for(let x=2;x<=16;x++)
+    if(simplified[y][x]==="W")simplified[y][x]=".";
+  for(let y=27;y<=58;y++)if(simplified[y][16]==="W")simplified[y][16]=".";
+  // Short marked wall stub above the old back-room entrance.
+  for(let y=26;y<=29;y++)if(simplified[y][16]==="W")simplified[y][16]=".";
+  // Three small cooler banks in cyan remain separate from the walk-in rooms.
+  // Two clear floor rows between the small fridges provide usable walkways.
+  // Dairy is a walk-in refrigerated room with a two-tile north entrance.
+  for(let y=35;y<=41;y++)for(let x=15;x<=28;x++)
+    simplified[y][x]=(x===15||x===28||y===35||y===41)?"Z":"S";
+  for(const x of [20,21,22,23])simplified[35][x]="M";
   layout.tiles=simplified.map(row=>row.join(""));
   layout.props=layout.props.filter(p=>!["forklift","majorAppliance"].includes(p.type));
   layout.props.push(
+    ...[35,38,41].map(y=>({type:"smallOpenCooler",x:33,y})),
+    ...[44,47].map(y=>({type:"meatIslandCooler",x:33,y})),
+    {type:"dairyEntrance",x:20,y:35,solid:false},
+    // Leave the center open for the approach from the north entrance.
+    ...[16,25].map(x=>({type:"milkShelf",x,y:36})),
+    ...[16,19,22,25].map(x=>({type:"eggShelf",x,y:39})),
+    // User-marked north-floor rows: three cold-case runs to the west,
+    // then six orange grocery aisles. Each run spans y:7–30, with open
+    // cross aisles at either end and at least two floor columns between rows.
+    ...[41,45,49].map(x=>({type:"refrigeratedShelf",x,y:7})),
+    // Promotional endcap pallets in front of the cold-case ends.
+    // Tuck them against the case ends, keeping the east–west cross aisle clear.
+    ...[41,45,49].map(x=>({type:"endcapPallet",x,y:31})),
+    // Matching endcaps on every grocery row, aligned with the cold cases
+    // so no display projects into the straight east–west cross aisle.
+    ...[29,33,37,54,58,62,66,70,74].map(x=>({type:"endcapPallet",x,y:31})),
+    ...[54,58,62,66,70,74].flatMap(x=>Array.from({length:8},(_,i)=>({type:"groceryShelf",x,y:7+i*3,rotation:-90}))),
+    // Three more matching racks beyond the westernmost cooler, with the
+    // same three-column walking gaps as the grocery bank to the east.
+    ...[29,33,37].flatMap(x=>Array.from({length:8},(_,i)=>({type:"groceryShelf",x,y:7+i*3,rotation:-90}))),
+    // Clothing fills the marked middle-floor rectangle west of Candy.
+    // Three-by-two tables leave two-column and two-row browsing lanes.
+    ...[54,59,64,69].flatMap(x=>[35,39,43,47].map(y=>({type:"clothingTable",x,y}))),
+    // Marked bays beside Clothing: domestic above, seasonal below.
+    ...[41,45,49].flatMap(x=>[35,38].map(y=>({type:"domesticShelf",x,y}))),
+    ...[41,45,49].flatMap(x=>[43,46].map(y=>({type:"seasonalShelf",x,y}))),
     // Candy shelves occupy the marked rectangle as north–south runs; the
     // three floor columns between each run are walking aisles. A cross
     // aisle at y:41–43 lines up with Register 5 and halves every run.
@@ -393,6 +432,24 @@
   layout.signs=layout.signs.filter(s=>s.text!=="MAJOR APPLIANCES");
   layout.signs.push(
     {text:"OPTICAL",x:99.5,y:19,kind:"optical"},
+    {text:"DOMESTICS",x:46.5,y:33.8,kind:"dept"},
+    {text:"SEASONAL",x:46.5,y:41.8,kind:"dept"},
+    // Number from Pharmacy toward the coolers: odd on the east-facing side,
+    // then even on the west-facing side, starting with 301 nearest Pharmacy.
+    // Repeat the paired placards at both ends for either approach direction.
+    ...[74,70,66,62,58,54].flatMap((x,i)=>[7.5,30.5].flatMap(y=>[
+      {text:String(301+i*2),x:x+1.05,y,kind:"rackNumber"},
+      {text:String(302+i*2),x:x-.05,y,kind:"rackNumber"},
+    ])),
+    // Continue the same east-to-west numbering across the double-sided cases.
+    ...[49,45,41].flatMap((x,i)=>[7.5,30.5].flatMap(y=>[
+      {text:String(313+i*2),x:x+2.05,y,kind:"rackNumber"},
+      {text:String(314+i*2),x:x-.05,y,kind:"rackNumber"},
+    ])),
+    ...[37,33,29].flatMap((x,i)=>[7.5,30.5].flatMap(y=>[
+      {text:String(319+i*2),x:x+1.05,y,kind:"rackNumber"},
+      {text:String(320+i*2),x:x-.05,y,kind:"rackNumber"},
+    ])),
   );
   layout.floorLines=layout.floorLines.filter(line=>line.x>=120);
   Game.setMap(layout);

@@ -22,6 +22,7 @@ window.Tiles = (() => {
 
   // How tall each object stands (pixels). Floors are 0.
   const HEIGHT = { R:56, F:40, K:22, I:42, J:48, A:46, C:18, Q:34, P:26, L:14, Y:40, B:14, U:18, E:16, V:46, O:36, T:12, W:46, D:46, N:46, G:24, H:24 };
+  HEIGHT.Z=72;LEGEND.Z="white insulated dairy wall";SOLID.add("Z");
   Object.assign(HEIGHT, { s:24, t:18, d:22, p:30, f:20 });
   Object.assign(LEGEND, { s:"sink and mirror", t:"toilet", d:"office desk", p:"stall partition", f:"open refrigerated case" });
   LEGEND.a = "main entrance / exit aisle";
@@ -268,6 +269,16 @@ window.Tiles = (() => {
     const img = canvas(TS, isTop ? TS : H, (g, R) => {
       const v = variant;
       switch (c){
+        case "Z":
+          R(0,0,TS,isTop?TS:H,"#e9eeea");
+          R(1,0,2,isTop?TS:H,"#ffffff");
+          R(30,0,2,isTop?TS:H,"#bdc8c6");
+          if(!isTop){
+            R(0,H-18,TS,18,"#a9b8ba");
+            for(let y=H-16;y<H;y+=4)for(let x=2;x<TS;x+=6)
+              R(x,y,2,1,"#d5dfdc");
+          }
+          break;
         case "W":
           if (isTop){
             // Unbroken cap: individual tiles no longer read as separate blocks.
@@ -635,6 +646,21 @@ window.Tiles = (() => {
   PROPS.tireServiceCounter = { w:1, h:2 };
   PROPS.candyShelf = { w:1, h:3 };
   PROPS.medicineShelf = { w:1, h:3 };
+  PROPS.groceryShelf = { w:3, h:1 };
+  PROPS.clothingTable = { w:3, h:2 };
+  PROPS.endcapPallet = { w:2, h:2 };
+  PROPS.milkShelf = { w:3, h:1 };
+  PROPS.smallOpenCooler = { w:6, h:1 };
+  PROPS.meatIslandCooler = { w:6, h:1 };
+  PROPS.dairyEntrance = { w:4, h:1 };
+  PROPS.eggShelf = { w:3, h:1 };
+  PROPS.deliShelf = { w:3, h:1 };
+  PROPS.rotisserieOven = { w:3, h:1 };
+  PROPS.rotisserieBackdrop = { w:12, h:1 };
+  PROPS.meatShelf = { w:3, h:1 };
+  PROPS.domesticShelf = { w:1, h:3 };
+  PROPS.seasonalShelf = { w:1, h:3 };
+  PROPS.refrigeratedShelf = { w:2, h:24 };
   PROPS.emergencyExit = { w:2, h:1 };
   PROPS.proteinPallet = { w:2, h:2 };
   const wallShelfTypes = ["chipsShelf","sodaShelf","energyShelf","cleaningShelf"];
@@ -655,13 +681,336 @@ window.Tiles = (() => {
       if(propCache.has(key)) return propCache.get(key);
       const original=propImage(type);
       if(!original) return null;
-      const rotated=canvas(original.height,original.width,g=>{
+      // Keep these aisle racks within their one-tile width; rotating the
+      // wall artwork otherwise turns its tall front into an oversized width.
+      const rotated=canvas(type==="groceryShelf"?TS:original.height,original.width,g=>{
+        if(type==="groceryShelf") g.scale(TS/original.height,1);
         g.translate(0,original.width); g.rotate(-Math.PI/2); g.drawImage(original,0,0);
       });
       propCache.set(key,rotated); return rotated;
     }
     if (propCache.has(type)) return propCache.get(type);
     let img = null;
+    if(type === "meatIslandCooler"){
+      img=canvas(192,64,(g,R)=>{
+        // Low open refrigerated island, with trays visible from above.
+        R(2,57,188,7,"rgba(0,0,0,.2)");
+        R(0,7,192,52,"#c0cbc8");R(3,9,186,30,"#596b69");
+        R(6,12,180,25,"#263c3a");
+        for(let row=0;row<2;row++)for(let pack=0;pack<12;pack++){
+          const x=8+pack*14,y=13+row*12;
+          R(x,y,13,11,"#6a9aaa");R(x+1,y+1,11,9,"#f0e4cd");
+          const color=["#b95750","#cc7758","#dcaa7b","#a9474a"][(pack+row)%4];
+          R(x+2,y+2,9,6,color);
+          R(x+3,y+3,3,1,"#efbbaa");R(x+7,y+4,3,1,"#edc0a6");
+          R(x+1,y+1,1,8,"rgba(255,255,255,.65)");
+          R(x+7,y+6,4,3,"#fff9e5");
+        }
+        // Raised stainless rear rim with small product price cards.
+        R(0,5,192,7,"#b9c7c6");R(1,5,190,2,"#edf2e9");
+        for(const x of [27,88,149]){
+          R(x,0,18,9,"#fffcf0");R(x+3,2,12,1,"#889186");
+          R(x+6,5,8,2,"#394b43");
+        }
+        // Clear front guard, red bumper and diamond-plate cabinet base.
+        R(3,32,186,8,"rgba(200,232,230,.3)");
+        R(3,32,186,2,"#edf5ed");R(0,40,192,4,"#c52b30");
+        R(1,40,190,1,"#f16d62");R(2,44,188,14,"#d9ded5");
+        R(2,52,188,8,"#9fadae");
+        for(let y=54;y<60;y+=3)for(let x=4;x<188;x+=6)R(x,y,3,1,"#dce5df");
+        R(0,10,5,32,"#dce4dd");R(187,10,5,32,"#dce4dd");
+        R(5,60,182,3,"#536765");
+      });
+    }
+    if(type === "smallOpenCooler"){
+      img=canvas(192,88,(g,R)=>{
+        // Open multi-deck case: white canopy, lit stock and diamond-plate base.
+        R(1,82,190,6,"rgba(0,0,0,.2)");
+        R(0,0,192,83,"#c4cdca");R(5,12,182,55,"#172526");
+        R(1,0,190,12,"#e8ede6");R(2,1,188,2,"#ffffff");
+        R(6,12,180,2,"#f9ffe9");
+        for(let bay=0;bay<6;bay++){
+          const left=7+bay*30;
+          for(const y of [17,43]){
+            const color=["#a5433c","#376386","#4c7052","#e2d7b0","#a88548","#e4e5d8"][(bay+(y>20?2:0))%6];
+            for(let layer=0;layer<2;layer++)for(let pack=0;pack<2;pack++){
+              const x=left+pack*13,py=y+layer*10;
+              R(x,py,12,9,color);R(x+1,py+1,10,1,"rgba(255,255,255,.35)");
+              R(x+2,py+2,8,5,"#eee9cf");R(x+4,py+3,4,3,"#c39b63");
+              R(x+1,py+7,10,1,"#263c35");
+            }
+          }
+          R(left,37,28,3,"#b9c6bd");R(left+10,37,8,3,"#fff9e5");
+          // Small shelf-edge prices, without a department sign.
+          R(left+7,3,15,7,"#fffdf2");R(left+9,5,10,1,"#768077");
+          R(left+12,7,6,1,"#35413c");
+        }
+        R(4,64,184,4,"#bd282c");R(5,64,182,1,"#f16c5d");
+        R(2,68,188,15,"#a4b2b1");R(2,68,188,2,"#e4eae2");
+        for(let y=73;y<83;y+=4)for(let x=5;x<187;x+=6)R(x,y,3,1,"#dce5df");
+        for(const x of [0,186]){
+          R(x,1,6,68,"#d9e0db");R(x+1,2,2,65,"#f7f8ee");
+        }
+        R(5,83,182,3,"#536765");
+      });
+    }
+    if(type === "dairyEntrance"){
+      img=canvas(128,112,(g,R)=>{
+        // Red header on a stainless portal, with transparent PVC strips.
+        R(0,0,128,28,"#c51f26");R(2,1,124,2,"#ef635b");
+        g.font="bold 22px Arial, sans-serif";g.textAlign="center";
+        g.fillStyle="#fffdf1";g.fillText("DAIRY",64,23);
+        R(0,28,128,6,"#a9b8b9");R(2,28,124,2,"#f1f5ee");
+        for(let x=8;x<120;x+=10){
+          R(x,34,9,69,"rgba(184,221,220,.22)");
+          R(x,34,1,69,"rgba(245,255,248,.6)");
+          R(x+7,34,1,69,"rgba(89,134,144,.4)");
+        }
+        for(const x of [0,122]){
+          R(x,31,6,81,"#849c9d");R(x+1,32,2,78,"#e2eae4");
+        }
+        for(const x of [8,110]){
+          R(x-2,105,14,6,"#89222a");R(x,77,9,31,"#cf252e");
+          R(x+1,74,7,6,"#e23c3e");R(x+2,79,2,24,"#f16459");
+        }
+      });
+    }
+    if(type === "rotisserieBackdrop"){
+      img=canvas(384,80,(g,R)=>{
+        R(0,0,384,80,"#7c8d90");
+        for(let panel=0;panel<12;panel++){
+          const x=panel*32;
+          R(x+1,2,30,74,"#b9c7c8");R(x+3,3,5,72,"#d9e1de");
+          R(x+24,3,5,72,"#96a8ac");R(x+30,2,1,74,"#647b80");
+        }
+        R(0,0,384,12,"#c62727");R(0,0,384,2,"#f16956");
+        R(0,75,384,5,"#596f73");
+      });
+    }
+    if(type === "deliShelf" || type === "rotisserieOven"){
+      const oven=type==="rotisserieOven";
+      img=canvas(96,88,(g,R)=>{
+        // Stainless cabinet and reflective trim, with a red service header.
+        R(0,0,96,85,"#8e9c9b");R(2,2,92,81,"#ccd4d0");
+        R(4,4,88,13,"#be2926");R(5,4,86,2,"#f06147");
+        g.font="bold 7px Arial, sans-serif";g.textAlign="center";
+        g.fillStyle="#fff9e6";g.fillText(oven?"ROTISSERIE":"CHICKEN   •   CAUTION HOT",48,13);
+        R(4,20,88,51,"#253332");
+        for(const y of [25,48]){
+          R(6,y-3,84,3,"#ffe3a0");R(6,y,84,17,"#614631");
+          for(let pack=0;pack<5;pack++){
+            const x=8+pack*16;
+            R(x,y+6,14,11,oven?"#b8ada0":"#202b2a");
+            R(x+2,y+3,10,9,"#b76a2a");R(x+4,y+1,7,9,"#dba04b");
+            R(x+1,y+7,4,5,"#d18b35");R(x+9,y+6,4,5,"#a55a26");
+            if(!oven){
+              R(x,y,14,2,"#ce302b");R(x+2,y+1,1,12,"rgba(255,245,211,.45)");
+              R(x+4,y+11,7,3,"#f3dfb5");
+            }
+          }
+          R(5,y+17,86,4,"#bfc9c0");R(6,y+17,84,1,"#f3e4b9");
+        }
+        for(const x of [2,46,91]){
+          R(x,19,3,54,"#dae1d9");
+          if(oven)R(x+3,37,2,13,"#738480");
+        }
+        R(5,72,86,10,"#aebbb5");R(8,73,1,8,"#edf1e5");
+        R(1,83,94,5,"#526560");
+        R(38,74,21,6,"#fff4d6");g.font="bold 5px Arial, sans-serif";
+        g.fillStyle="#a92b26";g.fillText(oven?"HOT":"4.99",48,79);
+      });
+    }
+    if(["milkShelf","eggShelf","meatShelf"].includes(type)){
+      img=canvas(96,64,(g,R)=>{
+        R(0,0,96,61,"#718a89");R(3,3,90,55,"#293d40");
+        for(const y of [7,32]){
+          for(let i=0;i<8;i++){
+            const x=5+i*11;
+            if(type==="milkShelf"){
+              R(x,y+4,9,17,"#f2f4e5");R(x+2,y,6,5,"#e8eee3");
+              R(x+3,y,4,2,i%2?"#ce5755":"#4583aa");
+              R(x+1,y+10,7,7,i%2?"#ce5755":"#4583aa");
+              R(x+2,y+12,5,2,"#fff9ec");
+            }else if(type === "eggShelf"){
+              for(const dy of [4,11]){
+                R(x,y+dy,10,7,"#b8af8c");R(x,y+dy+5,10,2,"#888567");
+                for(let egg=0;egg<3;egg++)R(x+1+egg*3,y+dy+1,2,3,"#f4e6bd");
+              }
+              R(x+3,y+6,4,9,"#e1dac1");
+            }else{
+              // Wrapped deli packs or butcher trays on the cold-room racks.
+              for(const dy of [2,12]){
+                R(x,y+dy,10,9,"#ece9da");
+                R(x+1,y+dy+1,8,6,type==="meatShelf"?"#b65356":"#d4ac72");
+                R(x+2,y+dy+2,5,1,type==="meatShelf"?"#e1a29a":"#edcf94");
+                R(x+6,y+dy+3,3,3,"#fff7e5");
+                R(x+1,y+dy+6,8,1,"rgba(255,255,255,.5)");
+              }
+            }
+          }
+          R(2,y+22,92,3,"#b7c5bd");
+        }
+        R(0,0,3,64,"#adc2ba");R(93,0,3,64,"#6d8580");
+        R(34,55,28,8,"#fff9e8");g.font="bold 6px Arial, sans-serif";
+        g.textAlign="center";g.fillStyle="#3e5654";
+        g.fillText({milkShelf:"MILK",eggShelf:"EGGS",deliShelf:"DELI",meatShelf:"MEAT"}[type],48,61);
+      });
+    }
+    if(type === "domesticShelf" || type === "seasonalShelf"){
+      const domestic=type==="domesticShelf";
+      // Identical upright gondola frame and footprint to the candy shelves.
+      img=canvas(32,120,(g,R)=>{
+        R(0,0,32,118,"#a5521c");R(2,2,28,114,"#392a35");
+        for(let bay=0;bay<3;bay++){
+          const top=bay*32;
+          R(2,top+2,28,3,"#e2742c");R(2,top+2,28,1,"#f5a05c");
+          for(const y of [top+7,top+21]){
+            if(domestic){
+              for(let stack=0;stack<3;stack++){
+                const x=4+stack*8;
+                for(let layer=0;layer<3;layer++){
+                  R(x,y+layer*3,7,3,["#e8e0c9","#a7c3c2","#b0a2b6"][(stack+bay)%3]);
+                  R(x+1,y+layer*3,5,1,"#f5efdf");
+                }
+                R(x+3,y+1,1,8,"#c3ae87");R(x+2,y+4,3,3,"#fff5de");
+              }
+            }else{
+              for(let box=0;box<3;box++){
+                const x=4+box*8;
+                R(x,y,7,10,(box+bay)%2?"#3d6b50":"#ab4b43");
+                R(x+3,y,1,10,"#e5c478");R(x,y+4,7,1,"#e5c478");
+                R(x+1,y+6,5,3,"#eee9d6");
+              }
+            }
+            R(2,y+11,28,3,"#e2742c");R(2,y+11,28,1,"#f5a05c");
+            R(2,y+13,28,1,"#a5521c");
+          }
+        }
+        R(0,0,2,118,"#f5a05c");R(30,0,2,118,"#a5521c");
+        R(1,115,30,4,"#7a3c14");
+      });
+    }
+    if(type === "endcapPallet"){
+      img=canvas(64,94,(g,R)=>{
+        R(2,86,61,7,"rgba(0,0,0,.2)");
+        R(2,77,60,12,"#345e86");R(3,78,58,3,"#6491b0");
+        for(const x of [7,27,47]) R(x,84,10,5,"#1d3c57");
+        for(let row=0;row<3;row++)for(let col=0;col<2;col++){
+          const x=4+col*28,y=20+row*19;
+          R(x,y,27,19,"#a75929");R(x+1,y+1,25,16,"#e6b65b");
+          R(x+2,y+12,23,5,"#ba4c36");
+          for(let pack=0;pack<3;pack++){
+            R(x+3+pack*7,y+3,5,8,["#e8d386","#83a260","#dc8952"][pack]);
+            R(x+4+pack*7,y+5,3,3,"#f9eed3");
+          }
+          R(x+9,y+13,9,3,"#fff0ce");
+        }
+        R(29,9,2,14,"#758777");R(17,0,28,14,"#fdf8e9");
+        R(20,3,22,1,"#6a7569");g.font="bold 8px Arial, sans-serif";
+        g.textAlign="center";g.fillStyle="#b4302c";g.fillText("9.99",31,11);
+      });
+    }
+    if(type === "clothingTable"){
+      img=canvas(96,108,(g,R)=>{
+        // Orange warehouse beams, green uprights and reserve cartons below.
+        R(2,99,93,8,"rgba(0,0,0,.2)");
+        R(2,73,92,29,"#354a40");
+        R(5,95,86,8,"#315c87");R(8,99,8,4,"#234366");R(77,99,8,4,"#234366");
+        for(const x of [6,35,64]){
+          R(x,76,26,19,"#b58c52");R(x+1,77,24,3,"#d1ad72");
+          R(x+12,77,2,17,"#ddc095");R(x+3,86,8,6,"#f1dd8e");
+          R(x+4,88,6,1,"#615741");
+        }
+        R(1,24,94,52,"#a78b62");R(3,26,90,47,"#d1bd93");
+        R(0,73,96,7,"#db681f");R(1,73,94,2,"#f6a044");
+        R(1,98,94,4,"#9a4c20");
+        for(const x of [1,90]){
+          R(x,71,5,35,"#476e59");R(x,71,1,35,"#91a88b");
+          for(let y=81;y<103;y+=6)R(x+2,y,1,2,"#233e32");
+        }
+        // Dense, uneven piles of folded tees, denim and patterned sweaters.
+        const colors=["#273e55","#c17983","#9ea98d","#eee0b4","#414551","#b6d6c8"];
+        for(let row=0;row<2;row++)for(let col=0;col<4;col++){
+          const x=5+col*22,base=43+row*25,count=4+(col+row)%3;
+          for(let layer=0;layer<count;layer++){
+            const y=base-layer*3,dx=(layer+col)%3-1;
+            const color=colors[(col+row*3+Math.floor(layer/3))%colors.length];
+            R(x+dx,y,19,9,"#313b38");R(x+dx,y,18,7,color);
+            R(x+dx+1,y+6,16,1,"rgba(255,255,255,.28)");
+            if((row+col)%3===0){
+              for(let stripe=0;stripe<3;stripe++)R(x+dx+2+stripe*6,y+1,2,4,"#c9d1bf");
+            }
+          }
+          R(x+13,base-(count-1)*3+2,4,3,"#f5e8d3");
+        }
+        // Upright white price signs rise above the clothing piles.
+        for(const x of [20,67]){
+          R(x+7,16,2,13,"#7c8980");R(x-1,1,20,17,"#b4bcb0");
+          R(x,2,18,15,"#fffcf0");R(x+3,5,12,1,"#737c72");
+          g.font="bold 6px Arial, sans-serif";g.textAlign="center";
+          g.fillStyle="#303a34";g.fillText(x===20?"14.99":"19.99",x+9,13);
+        }
+      });
+    }
+    if(type === "refrigeratedShelf"){
+      // Back-to-back glass cases face both walking aisles. A narrow
+      // insulated spine joins the two sides within the same solid footprint.
+      img=canvas(64,816,(g,R)=>{
+        R(3,49,61,767,"rgba(0,0,0,.18)");
+        R(0,0,64,768,"#b5beb8");R(27,0,10,768,"#f0f0e8");
+        R(29,0,6,768,"#fafaf3");
+        for(let bay=0;bay<24;bay++){
+          const top=bay*32;
+          R(28,top,8,1,"#d4d8d1");
+          // Mirror the trim and handles so each bank opens toward its aisle.
+          for(const side of [0,1]){
+            const left=side===0?0:37;
+            R(left,top,27,32,"#aab3b0");
+            R(left+1,top+1,25,30,"#252e2d");
+            R(left+3,top+3,21,26,"#182d2d");
+            for(const shelf of [top+5,top+17]){
+              for(let i=0;i<3;i++){
+                const x=left+4+i*6;
+                const color=["#dfb05c","#78a8b6","#8eac67","#e1ddc3","#b56342"][(i+bay+side)%5];
+                R(x,shelf,5,9,color);R(x+1,shelf+2,3,4,"#f3f0da");
+                R(x+2,shelf+3,1,2,color);
+              }
+              R(left+3,shelf+9,21,2,"#c3c9bc");
+              R(left+10,shelf+9,5,1,"#fff8da");
+            }
+            R(left+3,top+3,1,26,"#dcecd2");
+            R(left+7,top+3,2,25,"rgba(221,243,238,.17)");
+            R(left+(side===0?4:21),top+11,2,12,"#e1e6e0");
+            // Individual price cards above each glass door.
+            R(left+10,top+1,10,5,"#fffef6");
+            R(left+12,top+3,6,1,"#39413e");
+          }
+        }
+        // Glass-door end banks complete all four faces of the cold cases.
+        for(const end of [0,768]){
+          R(0,end,64,42,"#b5beb8");
+          for(const left of [2,33]){
+            R(left,end+2,29,36,"#252e2d");
+            R(left+2,end+4,25,31,"#182d2d");
+            for(const shelf of [end+7,end+21]){
+              for(let i=0;i<3;i++){
+                const x=left+4+i*7;
+                const color=["#dfb05c","#78a8b6","#8eac67"][i];
+                R(x,shelf,6,10,color);R(x+1,shelf+3,4,4,"#f3f0da");
+              }
+              R(left+2,shelf+10,25,2,"#c3c9bc");
+            }
+            R(left+3,end+4,1,30,"#dcecd2");
+            R(left+7,end+4,3,30,"rgba(221,243,238,.2)");
+            R(left+23,end+13,2,13,"#e1e6e0");
+            R(left+9,end+1,11,5,"#fffef6");
+            R(left+11,end+3,7,1,"#39413e");
+          }
+          R(0,end+38,64,4,"#929d99");R(1,end+38,62,1,"#c7cfca");
+        }
+        R(0,810,64,6,"#586661");
+      });
+    }
     if(type === "candyShelf"){
       // North–south candy gondola with the orange warehouse-rack frame.
       img=canvas(32,120,(g,R)=>{
@@ -773,10 +1122,10 @@ window.Tiles = (() => {
         R(5,39,54,1,"rgba(255,255,255,.35)");R(5,58,54,1,"rgba(255,255,255,.35)");
       });
     }
-    if(wallShelfTypes.includes(type)){
+    if(wallShelfTypes.includes(type) || type === "groceryShelf"){
       // Reuse the exact top/front art used by the south-wall R tiles:
       // same height, orange beams, green posts, overstock boxes and pallets.
-      const product={chipsShelf:"chips",sodaShelf:"soda",energyShelf:"energy",cleaningShelf:"detergent"}[type];
+      const product={chipsShelf:"chips",sodaShelf:"soda",energyShelf:"energy",cleaningShelf:"detergent",groceryShelf:"chips"}[type];
       img=canvas(PROPS[type].w*TS,TS+HEIGHT.R,g=>{
         for(let tile=0;tile<PROPS[type].w;tile++){
           g.drawImage(rackTop(true,true,tile===0,false,tile+3),tile*TS,0);
@@ -1483,7 +1832,7 @@ window.Tiles = (() => {
   }
 
   // Colors for the small overview map.
-  const MINI = { "~":"#2e3035", ".":"#cdc9c1", S:"#bccad0", M:"#2f3238", X:"#a39f97", W:"#4a505c", R:"#2f5687", P:"#b08454",
+  const MINI = { "~":"#2e3035", ".":"#cdc9c1", S:"#bccad0", Z:"#e9eeea", M:"#2f3238", X:"#a39f97", W:"#4a505c", R:"#2f5687", P:"#b08454",
     C:"#22252b", Q:"#5fd0c2", K:"#b9bfc7", I:"#d51f2a", J:"#e6a13c", A:"#f4f5f2", F:"#9fd1e6", O:"#f08a32", T:"#c0392b", V:"#16171c", E:"#6b717d", B:"#5cb85c",
     U:"#e86f1c", D:"#8fb6c9", L:"#d6aabe", Y:"#e650a0", N:"#d9534f", G:"#c9883e", H:"#b3261e" };
   Object.assign(MINI, { s:"#d0e0e3", t:"#ffffff", d:"#b69b76", p:"#aebdc1", f:"#c2ccd0" });

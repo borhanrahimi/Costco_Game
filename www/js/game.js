@@ -543,7 +543,7 @@
       g.fillStyle = Tiles.MINI[grid[ty][tx]] || "#cdc9c1"; g.fillRect(tx*MINI, ty*MINI, MINI, MINI);
     }
     props.forEach(p => {
-      g.fillStyle = p.type === "employeeLocker" ? "#8d9598" : "#f2b33d";
+      g.fillStyle = p.type === "employeeLocker" ? "#8d9598" : p.type === "refrigeratedShelf" ? "#246bdf" : p.type === "groceryShelf" ? "#ff920d" : "#f2b33d";
       g.fillRect(p.x*MINI, p.y*MINI, p.size.w*MINI, p.size.h*MINI);
     });
   }
