@@ -559,6 +559,16 @@
     npcs.forEach(n => dot(n.px, n.py - 16, n.talked ? "#7d8494" : "#f2b33d", Math.max(4, 4*u)));
     stations.forEach(st => dot(st.px, st.py - 16, "#c0392b", Math.max(4, 4*u)));
     dot(player.x, player.y - 16, "#ff4b3a", Math.max(5, 6*u));
+    // Show the actual parked / driven location, including restored saves.
+    vehicles.forEach(v => {
+      dot(v.px, v.py, "#55d5ed", Math.max(5, 6*u));
+      g.font = `bold ${Math.max(10, 11*u)}px Arial, sans-serif`;
+      g.textAlign = "right"; g.textBaseline = "bottom";
+      const label = "FORKLIFT", x = v.px*s - 9*u, y = v.py*s - 7*u;
+      const w = g.measureText(label).width;
+      g.fillStyle = "#172831"; g.fillRect(x-w-3*u, y-13*u, w+6*u, 15*u);
+      g.fillStyle = "#83e7f5"; g.fillText(label, x, y);
+    });
   }
   function toggleMap(){
     if (state === "play" && !talk.who){ drawMini(); setState("map"); }

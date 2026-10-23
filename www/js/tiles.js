@@ -23,6 +23,8 @@ window.Tiles = (() => {
   // How tall each object stands (pixels). Floors are 0.
   const HEIGHT = { R:56, F:40, K:22, I:42, J:48, A:46, C:18, Q:34, P:26, L:14, Y:40, B:14, U:18, E:16, V:46, O:36, T:12, W:46, D:46, N:46, G:24, H:24 };
   HEIGHT.Z=72;LEGEND.Z="white insulated dairy wall";SOLID.add("Z");
+  HEIGHT.h=72;LEGEND.h="stainless steel production wall";SOLID.add("h");
+  LEGEND.j="deli window and refrigerated case frontage";SOLID.add("j");
   Object.assign(HEIGHT, { s:24, t:18, d:22, p:30, f:20 });
   Object.assign(LEGEND, { s:"sink and mirror", t:"toilet", d:"office desk", p:"stall partition", f:"open refrigerated case" });
   LEGEND.a = "main entrance / exit aisle";
@@ -269,6 +271,17 @@ window.Tiles = (() => {
     const img = canvas(TS, isTop ? TS : H, (g, R) => {
       const v = variant;
       switch (c){
+        case "h": {
+          const height=isTop?TS:H;
+          const steel=g.createLinearGradient(0,0,TS,0);
+          steel.addColorStop(0,"#899b9f");steel.addColorStop(.25,"#d8e0de");
+          steel.addColorStop(.55,"#b9c7c9");steel.addColorStop(1,"#859a9f");
+          g.fillStyle=steel;g.fillRect(0,0,TS,height);
+          R(0,0,1,height,"#e9eeea");R(30,0,2,height,"#617c82");
+          for(let y=5;y<height;y+=6)R(3,y,26,1,"rgba(240,246,243,.15)");
+          if(!isTop)R(0,H-5,TS,5,"#6b8287");
+          break;
+        }
         case "Z":
           R(0,0,TS,isTop?TS:H,"#e9eeea");
           R(1,0,2,isTop?TS:H,"#ffffff");
@@ -653,9 +666,28 @@ window.Tiles = (() => {
   PROPS.smallOpenCooler = { w:6, h:1 };
   PROPS.meatIslandCooler = { w:6, h:1 };
   PROPS.dairyEntrance = { w:4, h:1 };
+  PROPS.produceEntrance = { w:4, h:1 };
+  PROPS.bakeryFascia = { w:6, h:1 };
+  PROPS.bakeryPastryTable = { w:4, h:1 };
+  PROPS.bakeryTrayRack = { w:2, h:1 };
+  PROPS.bakeryOven = { w:4, h:2 };
+  PROPS.produceRack = { w:3, h:1 };
+  PROPS.produceSideRack = { w:1, h:3 };
+  PROPS.producePallet = { w:2, h:1 };
+  for(const type of ["dairyMilkRack","dairyEggRack","dairyYogurtRack"])PROPS[type]={w:3,h:1};
+  PROPS.dairySideRack={w:1,h:3};
   PROPS.eggShelf = { w:3, h:1 };
   PROPS.deliShelf = { w:3, h:1 };
   PROPS.rotisserieOven = { w:3, h:1 };
+  PROPS.rotisserieHotCase = { w:3, h:1 };
+  PROPS.rotisserieFascia = { w:6, h:1 };
+  PROPS.whiteStaffDoor = { w:2, h:1 };
+  PROPS.deliWindowCase = { w:1, h:1 };
+  PROPS.deliPrepTable = { w:6, h:1 };
+  PROPS.deliPrepSink = { w:3, h:1 };
+  PROPS.packagingShelf = { w:3, h:1 };
+  PROPS.leftoverFridge = { w:2, h:2 };
+  PROPS.cleanDishRack = { w:1, h:3 };
   PROPS.rotisserieBackdrop = { w:12, h:1 };
   PROPS.meatShelf = { w:3, h:1 };
   PROPS.domesticShelf = { w:1, h:3 };
@@ -683,8 +715,9 @@ window.Tiles = (() => {
       if(!original) return null;
       // Keep these aisle racks within their one-tile width; rotating the
       // wall artwork otherwise turns its tall front into an oversized width.
-      const rotated=canvas(type==="groceryShelf"?TS:original.height,original.width,g=>{
-        if(type==="groceryShelf") g.scale(TS/original.height,1);
+      const narrow=["groceryShelf","bakeryFascia","bakeryPastryTable","rotisserieHotCase","rotisserieFascia","rotisserieOven","whiteStaffDoor","deliPrepSink","deliPrepTable"].includes(type);
+      const rotated=canvas(narrow?TS:original.height,original.width,g=>{
+        if(narrow) g.scale(TS/original.height,1);
         g.translate(0,original.width); g.rotate(-Math.PI/2); g.drawImage(original,0,0);
       });
       propCache.set(key,rotated); return rotated;
@@ -754,12 +787,273 @@ window.Tiles = (() => {
         R(5,83,182,3,"#536765");
       });
     }
-    if(type === "dairyEntrance"){
+    if(type === "bakeryFascia" || type === "rotisserieFascia"){
+      img=canvas(192,64,(g,R)=>{
+        g.scale(192/576,1);
+        R(0,0,576,53,"#c91f2b");R(0,1,576,2,"#f56664");
+        R(0,51,576,5,"#c0c9c4");R(5,57,566,4,"#fffde9");
+        R(123,6,330,41,"#f7f1db");R(126,9,186,35,"#202b2e");
+        g.textAlign="center";g.fillStyle="#fff9e7";
+        g.font="bold 21px Arial, sans-serif";g.fillText("KIRKLAND",219,29);
+        g.fillStyle="#e64a42";g.font="italic 13px cursive";g.fillText("Signature",219,42);
+        g.fillStyle="#253032";g.font="bold "+(type==="rotisserieFascia"?17:27)+"px Georgia, serif";g.fillText(type==="rotisserieFascia"?"ROTISSERIE":"BAKERY",382,36);
+        g.fillStyle="#fff8e9";g.font="bold 17px Arial, sans-serif";
+        g.fillText(type==="rotisserieFascia"?"HOT":"CAKES",62,34);g.fillText(type==="rotisserieFascia"?"CHICKEN":"COOKIES",514,34);
+      });
+    }
+    if(type === "bakeryPastryTable"){
+      img=canvas(128,80,(g,R)=>{
+        // Orange warehouse beams, perforated green legs and white tubs below.
+        R(2,75,124,5,"rgba(0,0,0,.18)");
+        R(0,40,128,5,"#ed7924");R(0,40,128,1,"#ffb04c");
+        R(3,45,4,31,"#347c6c");R(121,45,4,31,"#347c6c");
+        for(let x=10;x<119;x+=18){
+          R(x,49,14,20,"#eeeae0");R(x-1,48,16,3,"#fffdf0");
+          R(x+2,56,10,7,["#bc6f44","#768a61","#bfaa68"][Math.floor(x/18)%3]);
+          R(x+4,58,6,3,"#f9f3dd");
+        }
+        R(0,70,128,5,"#dd691f");R(1,36,126,4,"#e5e6dc");
+        for(let col=0;col<6;col++)for(let layer=0;layer<3;layer++){
+          const x=3+col*20,y=29-layer*8;
+          R(x,y,19,9,"#302d25");R(x+1,y+1,17,6,"#d9a158");
+          for(let i=0;i<3;i++){
+            R(x+2+i*5,y+2,4,4,col%2?"#bf843c":"#80502c");
+            R(x+3+i*5,y+2,2,1,"#f1c882");
+          }
+          R(x,y,19,1,"#f4f2df");R(x+1,y+1,1,6,"#c4d1c5");
+          R(x+10,y+5,7,2,"#f7f4e6");
+        }
+        R(54,39,21,13,"#fffdf0");
+        g.font="bold 8px Arial, sans-serif";g.textAlign="center";g.fillStyle="#27342f";g.fillText("9.99",64,49);
+      });
+    }
+    if(type === "cleanDishRack"){
+      img=canvas(32,144,(g,R)=>{
+        R(2,138,30,6,"rgba(0,0,0,.18)");
+        R(1,3,3,133,"#a5bcbf");R(28,3,3,133,"#a5bcbf");
+        R(1,3,1,133,"#edf2e9");R(28,3,1,133,"#edf2e9");
+        for(const y of [10,43,76,109]){
+          R(4,y+20,24,3,"#819fa4");R(4,y+20,24,1,"#ecf1e7");
+          if(y===10||y===76){
+            // Clean sheet pans stand upright in the drying slots.
+            for(const x of [6,12,18,24]){
+              R(x,y,3,19,"#aabfc0");R(x,y,1,18,"#f2f4ea");
+              R(x+1,y+3,1,13,"#728f96");
+            }
+          }else{
+            for(const dy of [0,5,10]){
+              R(6,y+dy+2,18,7,"#a3b9bc");R(5,y+dy+1,20,2,"#e6eee4");
+              R(8,y+dy+3,14,3,"#c7d6d1");
+            }
+          }
+        }
+        R(4,134,24,3,"#79979d");
+      });
+    }
+    if(type === "packagingShelf"){
+      img=canvas(96,106,(g,R)=>{
+        R(3,100,92,6,"rgba(0,0,0,.18)");
+        R(0,0,96,100,"#254d3d");R(4,4,88,92,"#3b6551");
+        for(const y of [9,36,63]){
+          for(let col=0;col<4;col++){
+            const x=7+col*21;
+            if(col%2===0){
+              for(let layer=0;layer<4;layer++){
+                R(x,y+14-layer*3,17,5,"#edf0e6");
+                R(x+1,y+14-layer*3,15,1,"#ffffff");
+                R(x+2,y+16-layer*3,13,1,"#aebeb4");
+              }
+            }else{
+              R(x,y+2,17,21,"#b58e5d");R(x,y+2,17,2,"#d8ba87");
+              R(x+3,y+8,11,8,"#f0e7d2");R(x+5,y+11,7,1,"#6a795f");
+            }
+          }
+          R(0,y+24,96,4,"#438764");R(0,y+24,96,1,"#8bb095");
+        }
+        for(const x of [0,92]){R(x,0,4,101,"#347b56");R(x,0,1,101,"#84a88b");}
+        R(0,0,96,5,"#44895f");
+        g.font="bold 7px Arial, sans-serif";g.textAlign="center";g.fillStyle="#f4f1dc";
+        g.fillText("PACKAGING",48,99);
+      });
+    }
+    if(type === "leftoverFridge"){
+      img=canvas(64,116,(g,R)=>{
+        R(3,109,60,6,"rgba(0,0,0,.18)");
+        R(0,0,64,110,"#8ba0a4");R(3,3,58,103,"#d6dfda");
+        R(5,7,54,94,"#b8c8c7");R(7,9,50,87,"#e4e9de");
+        R(7,41,50,3,"#829b9e");R(50,17,3,17,"#667f85");R(50,52,3,29,"#667f85");
+        R(13,54,29,19,"#fff9de");
+        g.font="bold 6px Arial, sans-serif";g.textAlign="center";g.fillStyle="#3d6055";
+        g.fillText("LEFTOVERS",28,62);g.fillText("DATE / LABEL",28,69);
+        R(7,99,50,7,"#7d9699");
+        for(let x=12;x<54;x+=5)R(x,101,2,3,"#4f7079");
+        R(5,108,9,4,"#304d52");R(50,108,9,4,"#304d52");
+      });
+    }
+    if(type === "deliPrepTable"){
+      img=canvas(192,62,(g,R)=>{
+        R(3,56,189,6,"rgba(0,0,0,.18)");
+        for(const x of [5,91,181]){R(x,28,5,29,"#8fa5a7");R(x,28,2,29,"#e0e9e2");}
+        R(7,48,178,5,"#aebfbe");R(8,48,176,1,"#e4ebe4");
+        R(0,5,192,28,"#b6c7c6");R(2,7,188,21,"#dce4dc");
+        R(0,5,192,2,"#f3f5e9");R(0,29,192,5,"#829b9f");
+        // Cutting boards, ingredient pans and a knife on the stainless surface.
+        for(const x of [18,98]){
+          R(x,10,45,15,"#f1eee0");R(x,24,45,2,"#b4bdac");
+          R(x+8,13,12,6,"#86a25b");R(x+24,15,10,5,"#cf9b68");
+          R(x+36,12,2,10,"#9aaeb0");R(x+36,20,2,5,"#344e4e");
+        }
+        for(const x of [72,157]){R(x,10,19,14,"#708b90");R(x+2,12,15,9,"#a9bd7c");R(x+2,12,15,1,"#ecf0dc");}
+      });
+    }
+    if(type === "deliPrepSink"){
+      img=canvas(96,80,(g,R)=>{
+        R(3,73,92,6,"rgba(0,0,0,.18)");
+        R(3,24,90,49,"#a7bbbd");R(5,26,86,39,"#d0dcd6");
+        R(0,18,96,27,"#c9d7d2");R(1,18,94,2,"#f2f5e8");
+        for(const x of [7,42]){
+          R(x,22,30,18,"#728f94");R(x+3,24,24,13,"#9db7b9");
+          R(x+13,31,4,3,"#4d7076");
+        }
+        R(30,3,4,21,"#8ba8ac");R(31,2,22,4,"#e0e9df");R(50,4,4,12,"#a2bec0");
+        R(76,23,11,13,"#e0eee0");R(79,19,5,5,"#519b9b");
+        R(6,67,5,8,"#6a878c");R(85,67,5,8,"#6a878c");
+      });
+    }
+    if(type === "deliWindowCase"){
+      // East-facing windows and refrigerated case share one floor column.
+      img=canvas(32,32,(g,R)=>{
+        R(0,0,32,32,"#a7b9ba");
+        // Framed viewing window reveals stainless prep equipment behind glass.
+        R(1,1,16,30,"#395961");R(3,3,12,26,"#94b9b7");
+        R(4,8,10,2,"#e5ece2");R(5,12,8,5,"#ccd5c9");
+        R(4,23,10,3,"#657e80");R(4,4,2,22,"rgba(244,255,244,.55)");
+        R(16,0,2,32,"#eff0e4");
+        // Lit packaged salads, meals and sandwiches under a sloped glass guard.
+        R(18,1,12,30,"#243e3d");
+        for(let y=3;y<30;y+=9){
+          R(19,y,10,7,"#eee9d2");R(20,y+1,8,4,"#7d9b58");
+          R(21,y+2,3,2,"#e8c780");R(25,y+1,2,2,"#bf7655");
+          R(20,y+5,6,1,"#fffdf1");
+        }
+        R(29,0,2,32,"#c92e32");R(31,0,1,32,"#d7e1dc");
+        R(0,0,32,1,"#ecf1e8");R(0,31,32,1,"#6b8385");
+      });
+    }
+    if(type === "whiteStaffDoor"){
+      img=canvas(64,104,(g,R)=>{
+        // White swing doors held open so the staff connection stays usable.
+        R(0,0,64,7,"#bac7c8");R(1,1,62,2,"#edf2ec");
+        for(const x of [0,50]){
+          R(x,7,14,94,"#98aeb0");R(x+2,9,10,89,"#f5f5eb");
+          R(x+3,27,8,27,"#728b90");R(x+4,28,6,24,"#b8d1cf");
+          R(x+2,80,10,17,"#c1ccca");R(x+8,61,2,12,"#7c9295");
+        }
+      });
+    }
+    if(type === "bakeryOven"){
+      img=canvas(128,124,(g,R)=>{
+        // Full-size stainless double-deck bakery oven with a vented hood.
+        R(3,117,125,7,"rgba(0,0,0,.2)");
+        R(0,0,128,120,"#899b9d");R(3,3,122,114,"#c5cfcb");
+        R(1,1,126,16,"#e1e6df");R(3,17,122,6,"#71888b");
+        for(let x=8;x<121;x+=7)R(x,5,3,9,"#718284");
+        for(const y of [28,68]){
+          R(7,y,91,35,"#647b7e");R(10,y+3,85,28,"#1e2c2e");
+          R(14,y+7,77,18,"#4b3627");
+          for(let x=18;x<89;x+=14){
+            R(x,y+13,11,8,"#bb8040");R(x+1,y+11,9,4,"#e1b36c");
+          }
+          R(12,y+28,81,3,"#d5dfdb");R(12,y+3,2,24,"#b5c9c7");
+          R(25,y+31,57,3,"#eef0e7");
+        }
+        R(102,28,19,75,"#8fa4a5");R(105,32,13,13,"#203837");
+        g.font="bold 7px monospace";g.textAlign="center";g.fillStyle="#e7a55b";g.fillText("375",112,41);
+        for(const y of [53,70,87]){R(108,y,8,8,"#354b4c");R(110,y+1,4,2,"#e3e6dc");}
+        R(5,108,118,7,"#6c8184");R(9,116,12,5,"#374d50");R(107,116,12,5,"#374d50");
+      });
+    }
+    if(type === "bakeryTrayRack"){
+      img=canvas(64,100,(g,R)=>{
+        R(5,94,54,5,"rgba(0,0,0,.18)");
+        R(4,5,3,85,"#b7c6c5");R(57,5,3,85,"#b7c6c5");
+        R(4,4,56,4,"#e3e9e3");
+        for(let y=14;y<86;y+=10){
+          R(8,y,48,6,"#535c58");R(9,y,46,2,"#e0e5da");
+          for(let x=12;x<53;x+=10){R(x,y-3,8,4,"#c7964e");R(x+1,y-3,6,1,"#edc880");}
+        }
+        for(const x of [8,50]){R(x,89,6,7,"#25302f");R(x+1,90,4,3,"#8b9a96");}
+      });
+    }
+    if(["produceRack","produceSideRack","producePallet","dairyMilkRack","dairyEggRack","dairyYogurtRack","dairySideRack"].includes(type)){
+      const rack=type!=="producePallet", side=type==="produceSideRack"||type==="dairySideRack";
+      const w=side?32:rack?96:64, h=side?152:rack?112:60;
+      img=canvas(w,h,(g,R)=>{
+        const colors=["#8eae46","#774b92","#d5b67d","#426e42","#c5c944"];
+        R(2,h-6,w-2,6,"rgba(0,0,0,.18)");
+        // Blue warehouse pallets underneath stacked open produce cartons.
+        R(2,h-14,w-4,9,"#1269a0");R(3,h-14,w-6,2,"#3198c7");
+        for(let x=6;x<w-3;x+=15)R(x,h-8,7,4,"#194967");
+        const rows=rack?(side?5:3):2, cols=side?1:rack?4:3;
+        const boxW=Math.floor((w-8)/cols);
+        for(let row=0;row<rows;row++){
+          const y=h-16-(row+1)* (rack?27:18);
+          for(let col=0;col<cols;col++){
+            const x=4+col*boxW, color=colors[(row+col)%colors.length];
+            const boxH=rack?23:16;
+            R(x,y,boxW-1,boxH,color);R(x,y,boxW-1,2,"#d5bf92");
+            R(x+2,y+3,boxW-5,4,"#253c28");
+            for(let i=0;i<3;i++){
+              R(x+3+i*Math.max(3,Math.floor((boxW-7)/3)),y+4,3,3,["#97bc50","#e9cd66","#c16647"][(row+col)%3]);
+            }
+            R(x+3,y+boxH-7,boxW-7,5,"#f1edd8");
+            R(x+5,y+boxH-5,Math.max(2,boxW-12),1,"#4b6542");
+            R(x+boxW-5,y+9,2,3,"#293b29");
+            if(type.startsWith("dairy")){
+              R(x,y,boxW-1,boxH,"#c4b28e");
+              R(x+1,y+1,boxW-3,boxH-2,"#3e5552");
+              if(type==="dairyMilkRack"){
+                for(const dx of [3,11]){
+                  R(x+dx,y+6,7,14,"#f5f4e9");R(x+dx+2,y+3,4,4,"#e5e7dc");
+                  R(x+dx+2,y+2,4,2,col%2?"#4d88b6":"#c74c48");
+                  R(x+dx+1,y+12,5,5,col%2?"#4d88b6":"#c74c48");
+                }
+              }else if(type==="dairyEggRack"){
+                for(const dy of [4,12]){
+                  R(x+2,y+dy,boxW-5,7,"#baac88");
+                  for(let dx=3;dx<boxW-4;dx+=4)R(x+dx,y+dy+1,3,4,"#f2e8ce");
+                  R(x+2,y+dy+6,boxW-5,1,"#8d805c");
+                }
+              }else{
+                for(const dy of [4,13])for(const dx of [3,11]){
+                  R(x+dx,y+dy,7,7,"#e9ece0");R(x+dx-1,y+dy,9,2,"#f9f9ec");
+                  R(x+dx+1,y+dy+3,5,3,["#8b67a2","#b25758","#71936a"][(row+col)%3]);
+                }
+              }
+            }
+          }
+          if(rack){
+            R(0,y+24,w,4,"#ed7822");R(0,y+24,w,1,"#ffac4b");
+            R(w/2-5,y+25,10,3,"#fff8df");
+          }
+        }
+        if(rack){
+          for(const x of [0,w-4]){
+            R(x,0,4,h-7,"#286e60");R(x,0,1,h-7,"#6b9e83");
+            for(let y=5;y<h-10;y+=8)R(x+1,y,2,2,"#173e39");
+          }
+          R(0,0,w,5,"#ec7722");R(0,0,w,1,"#ffab52");
+        }
+      });
+    }
+    if(type === "dairyEntrance" || type === "produceEntrance"){
       img=canvas(128,112,(g,R)=>{
         // Red header on a stainless portal, with transparent PVC strips.
         R(0,0,128,28,"#c51f26");R(2,1,124,2,"#ef635b");
         g.font="bold 22px Arial, sans-serif";g.textAlign="center";
-        g.fillStyle="#fffdf1";g.fillText("DAIRY",64,23);
+        g.fillStyle="#fffdf1";
+        g.font="bold "+(type==="produceEntrance"?13:22)+"px Arial, sans-serif";
+        g.fillText(type==="produceEntrance"?"FRESH PRODUCE":"DAIRY",64,23);
         R(0,28,128,6,"#a9b8b9");R(2,28,124,2,"#f1f5ee");
         for(let x=8;x<120;x+=10){
           R(x,34,9,69,"rgba(184,221,220,.22)");
@@ -787,7 +1081,7 @@ window.Tiles = (() => {
         R(0,75,384,5,"#596f73");
       });
     }
-    if(type === "deliShelf" || type === "rotisserieOven"){
+    if(type === "deliShelf" || type === "rotisserieOven" || type === "rotisserieHotCase"){
       const oven=type==="rotisserieOven";
       img=canvas(96,88,(g,R)=>{
         // Stainless cabinet and reflective trim, with a red service header.
@@ -1836,6 +2130,7 @@ window.Tiles = (() => {
     C:"#22252b", Q:"#5fd0c2", K:"#b9bfc7", I:"#d51f2a", J:"#e6a13c", A:"#f4f5f2", F:"#9fd1e6", O:"#f08a32", T:"#c0392b", V:"#16171c", E:"#6b717d", B:"#5cb85c",
     U:"#e86f1c", D:"#8fb6c9", L:"#d6aabe", Y:"#e650a0", N:"#d9534f", G:"#c9883e", H:"#b3261e" };
   Object.assign(MINI, { s:"#d0e0e3", t:"#ffffff", d:"#b69b76", p:"#aebdc1", f:"#c2ccd0" });
+  MINI.h = "#b9c7c9";MINI.j="#9fc4bd";
   MINI.a = "#d8d4ca";
   MINI.q="#83b9aa";MINI.e="#a9bdc4";
 

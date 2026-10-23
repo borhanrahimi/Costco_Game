@@ -353,8 +353,10 @@
     ...[44,47].map(y=>({type:"meatIslandCooler",x:33,y})),
     {type:"dairyEntrance",x:20,y:35,solid:false},
     // Leave the center open for the approach from the north entrance.
-    ...[16,25].map(x=>({type:"milkShelf",x,y:36})),
-    ...[16,19,22,25].map(x=>({type:"eggShelf",x,y:39})),
+    // Perimeter racks on every inside wall, with a clear center and doorway.
+    ...[16,25].map(x=>({type:"dairyMilkRack",x,y:36})),
+    ...[16,27].flatMap(x=>[37,40].map(y=>({type:"dairySideRack",x,y}))),
+    ...[17,20,23].map(x=>({type:"dairyEggRack",x,y:43})),
     // User-marked north-floor rows: three cold-case runs to the west,
     // then six orange grocery aisles. Each run spans y:7–30, with open
     // cross aisles at either end and at least two floor columns between rows.
@@ -450,6 +452,169 @@
       {text:String(319+i*2),x:x+1.05,y,kind:"rackNumber"},
       {text:String(320+i*2),x:x-.05,y,kind:"rackNumber"},
     ])),
+  );
+  // Closed production rooms on a single white frontage, aligned with Dairy.
+  // Two clear floor rows separate each department's walls.
+  const back=layout.tiles.map(row=>row.split(""));
+  const backFill=(x,y,w,h,t)=>{
+    for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)back[yy][xx]=t;
+  };
+  backFill(2,43,28,44,".");
+  backFill(2,43,1,45,"Z");backFill(2,87,28,1,"Z");
+  const closedRoom=(x,y,w,h,floor=".")=>{
+    backFill(x,y,w,h,floor);
+    for(const yy of [y,y+h-1])backFill(x,yy,w,1,"Z");
+    for(const xx of [x,x+w-1])backFill(xx,y,1,h,"Z");
+  };
+  closedRoom(3,44,26,13); // Deli, directly after Dairy.
+  // Extend Dairy to Deli's north partition so they share one white wall.
+  backFill(16,41,12,3,"S");
+  backFill(15,41,1,3,"Z");
+  backFill(28,41,1,3,"Z");
+  closedRoom(3,59,26,13); // Meat.
+  // Deli and Meat share one row of wall, with no unused gap between them.
+  backFill(4,56,24,3,".");
+  backFill(3,57,1,2,"Z");
+  backFill(28,57,1,2,"Z");
+  closedRoom(3,74,26,12); // Bakery.
+  // Meat and Bakery share one partition instead of two walls and a gap.
+  backFill(4,71,24,3,".");
+  backFill(3,72,1,2,"Z");
+  backFill(28,72,1,2,"Z");
+  // Cases sit behind the sealed frontage; no temporary staff doors are open.
+  backFill(27,46,1,8,"N");
+  backFill(27,61,1,8,"N");
+  backFill(27,76,1,7,"G");
+  backFill(13,50,5,1,"K");backFill(22,52,3,1,"K");
+  back[53][10]="s";
+  // Rotisserie inset beside the Meat / Deli boundary, within the closed room.
+
+  for(const y of [65,69])backFill(13,y,5,1,"K");
+  backFill(23,62,3,1,"K");backFill(23,69,3,1,"K");
+  back[60][19]="s";
+  backFill(7,76,1,3,"R");
+  for(const y of [76,82])backFill(13,y,5,1,"K");
+  backFill(22,76,4,1,"K");backFill(22,83,4,1,"K");
+  // Set Produce six rows farther south to expose Bakery to the main aisle.
+  // Its white return remains attached to Meat; the lower half shares Bakery's
+  // wall, while the upper half becomes a visible, solid pastry display.
+  backFill(28,71,1,10,"Z");
+  closedRoom(28,80,19,6,"S");
+  backFill(38,80,4,1,"M");
+  // Open the south face so the foreground wall cannot hide the produce.
+  // Keep the shared Bakery wall and east wall; use low bins around the room.
+  backFill(29,81,17,5,"S");
+  // Dedicated boxed-produce fixtures below replace the generic open bins.
+  // Low display frontage shows the bakery stock without admitting members.
+  // The white frame and sealed ends keep the production room inaccessible.
+  backFill(28,75,1,4,"G");
+  // Bakery uses low pastry displays instead of a tall south wall too.
+  // A continuous low counter keeps the staff workroom closed to members.
+  backFill(4,85,24,1,"G");
+  backFill(5,75,6,1,"G");
+  backFill(4,81,1,3,"G");
+  // South side is reserved for the three large bakery ovens.
+  backFill(22,83,4,2,".");
+  // Clear shelving behind the exposed bakery frontage.
+  for(let x=3;x<=28;x++){
+    if(back[86][x]==="R")back[86][x]=".";
+  }
+  // Remove the south-wall rack only behind Produce's exact wall span.
+  for(let x=28;x<=46;x++)if(back[86][x]==="R")back[86][x]=".";
+  // Exterior matches Costco's khaki walls and red trim, distinct from the
+  // white insulated department walls and low customer-facing displays.
+  backFill(2,43,1,45,"W");
+  backFill(3,87,44,1,"W");
+  // Close the one-tile route around the south end of Bakery's shared wall.
+  // This joins its display boundary to the exterior and keeps Produce open.
+  backFill(28,86,1,1,"G");
+  // Member entrance beside the pastry display; Produce's rear boundary stays sealed.
+  backFill(27,79,2,1,"M");
+  // Move the complete Dairy room twelve tiles west, keeping its north
+  // entrance, perimeter stock and shared Deli partition together.
+  const dairyRoom=back.slice(35,44).map(row=>row.slice(15,29));
+  backFill(15,35,14,9,".");
+  for(let dy=0;dy<9;dy++)for(let dx=0;dx<14;dx++)
+    back[35+dy][3+dx]=dairyRoom[dy][dx];
+  for(const fixture of layout.props)if(fixture.type.startsWith("dairy"))fixture.x-=12;
+  // User-marked Deli: the tall bay immediately east of Dairy, extending
+  // south to Meat. Remove the crossed divider through its middle.
+  backFill(3,45,1,14,".");
+  backFill(13,50,5,1,".");back[53][10]=".";
+  backFill(17,35,12,1,"Z");
+  backFill(17,35,1,24,"Z");
+  backFill(28,35,1,24,"Z");
+  backFill(18,44,10,1,".");
+  backFill(20,48,5,1,"K");back[53][19]="s";
+  // Small Rotisserie room in the user-marked south end of Deli.
+  // Reuse Meat's partition as its south wall, with a staff opening to Deli.
+  backFill(18,54,10,1,"Z");backFill(25,54,2,1,".");
+  backFill(18,55,10,4,".");
+  backFill(18,58,8,1,"K");
+  backFill(28,55,1,3,"J");
+  // Connecting staff doorway from the chicken room into Meat.
+  // Clear the prep-counter end so the door has an approach on both sides.
+  backFill(26,58,2,2,"M");
+  // Deli entrance from the member aisle, north of the Rotisserie room.
+  backFill(27,50,2,2,"M");
+  // Stainless chicken-room perimeter, with white swing doors on both sides.
+  backFill(17,54,1,6,"h");
+  backFill(18,54,10,1,"h");backFill(25,54,2,1,"M");
+  backFill(18,59,10,1,"h");backFill(26,59,2,1,"M");
+  back[54][28]="h";back[58][28]="h";back[59][28]="h";
+  // One-column member-facing Deli frontage: window and case together,
+  // replacing both the blank wall and the separate cases behind it.
+  const deliFrontRows=[...Array.from({length:14},(_,i)=>36+i),52,53];
+  for(const y of deliFrontRows){
+    back[y][28]="j";
+    if(back[y][27]==="N")back[y][27]=".";
+  }
+
+
+
+
+  // West-wall entrance near the south end, followed by sinks toward the fridge.
+  backFill(17,51,1,2,"M");
+  // Replace the short counters with two long stainless prep benches and
+  // a dedicated double-basin sink, leaving the east-side door route open.
+  backFill(20,48,5,1,".");backFill(22,52,3,1,".");back[53][19]=".";
+  layout.tiles=back.map(row=>row.join(""));
+  layout.props.push(
+    ...deliFrontRows.map(y=>({type:"deliWindowCase",x:28,y,solid:false})),
+    {type:"whiteStaffDoor",x:28,y:50,rotation:-90,solid:false},
+    {type:"whiteStaffDoor",x:25,y:54,solid:false},
+    {type:"whiteStaffDoor",x:26,y:59,solid:false},
+    {type:"rotisserieOven",x:18,y:55,rotation:-90},
+    {type:"rotisserieOven",x:20,y:55,rotation:-90},
+    {type:"deliPrepTable",x:21,y:38,rotation:-90},
+    {type:"deliPrepTable",x:27,y:42,rotation:-90},
+    {type:"whiteStaffDoor",x:17,y:51,rotation:-90,solid:false},
+    ...[41,44,47].map(y=>({type:"deliPrepSink",x:18,y,rotation:-90})),
+    // Replace the sink nearest the small fridge with clean-dish storage.
+    {type:"cleanDishRack",x:18,y:38},
+    // North wall: leftover fridge on the left, packaging racks on the right.
+    ...[21,24].map(x=>({type:"packagingShelf",x,y:36})),
+    {type:"leftoverFridge",x:18,y:36},
+    {type:"rotisserieHotCase",x:28,y:55,rotation:-90,solid:false},
+    {type:"rotisserieFascia",x:28,y:54,rotation:-90,solid:false},
+    ...[66,69].map(y=>({type:"meatShelf",x:4,y})),
+    // Photo reference: red Kirkland fascia over stainless prep space,
+    // rolling tray racks, and continuous clamshell-covered pastry tables.
+    {type:"bakeryFascia",x:28,y:73,rotation:-90,solid:false},
+    ...[6,12,18].map(x=>({type:"bakeryTrayRack",x,y:79})),
+    ...[6,13,20].map(x=>({type:"bakeryOven",x,y:83})),
+    {type:"produceEntrance",x:38,y:80,solid:false},
+    // Orange beams, green uprights, stacked cartons and blue pallets,
+    // based on the supplied cooler photos. Entrance and center stay clear.
+    ...[31,34,42].map(x=>({type:"produceRack",x,y:81})),
+    ...[29,45].map(x=>({type:"produceSideRack",x,y:82})),
+    ...[31,35,39,43].map(x=>({type:"producePallet",x,y:85})),
+  );
+  layout.signs.push(
+    {text:"DELI",x:23,y:35,kind:"deli"},
+
+    {text:"MEAT",x:23,y:59,kind:"meat"},
+
   );
   layout.floorLines=layout.floorLines.filter(line=>line.x>=120);
   Game.setMap(layout);

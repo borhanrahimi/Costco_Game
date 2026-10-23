@@ -60,6 +60,65 @@ for(let i=0;i<queue.length;i++) for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]
 // Pharmacy is intentionally closed; Hearing's west entrance stays usable.
 assert(!reached.has('95,5'), 'Closed pharmacy interior is reachable');
 assert(reached.has('98,14'), 'Pharmacy wall blocks Hearing entrance');
+// Deli and Meat stay closed; Bakery, Dairy and Produce are accessible.
+assert(reached.has('20,66'), 'Chicken-room connecting door must provide access to Meat');
+for(const [name,x,y] of [['Dairy',9,37],['Produce',40,82],['Bakery',20,81],['Deli',20,50],['Rotisserie',21,57]])
+  assert(reached.has(x+','+y), `Unreachable cooler: ${name}`);
+for(let y=43;y<=73;y++)
+  assert(reached.has('31,'+y), `Blocked back-department customer aisle at ${y}`);
+for(let x=4;x<=15;x++){
+  for(const y of [41,42,43])assert.equal(map.tiles[y][x], 'S', 'Dairy / Deli divider wastes floor space');
+  assert.equal(map.tiles[44][x], 'Z', 'Dairy and Deli must share one wall');
+}
+for(let x=4;x<=27;x++){
+  for(const y of [56,57,58]){
+    if(x===17)assert.equal(map.tiles[y][x], 'h');
+    else assert.notEqual(map.tiles[y][x], 'Z', 'Deli / Meat divider wastes floor space');
+  }
+  assert.equal(map.tiles[59][x], x>=26?'M':x>=17?'h':'Z', 'Deli and Meat must share one wall with a connecting door');
+}
+for(let y=71;y<=74;y++)assert.equal(map.tiles[y][28], 'Z', 'Produce must join Meat with a white wall');
+for(let x=4;x<=27;x++){
+  for(const y of [71,72,73])assert.equal(map.tiles[y][x], '.', 'Meat / Bakery divider wastes floor space');
+  assert.equal(map.tiles[74][x], 'Z', 'Meat and Bakery must share one wall');
+}
+
+for(let x=3;x<=46;x++)assert.equal(map.tiles[87][x], 'W', 'South exterior must use the normal khaki wall');
+// Produce cannot lead around the shelf end into the strip behind Bakery.
+for(let x=3;x<=28;x++)assert(!reached.has(x+',86'), 'Produce allows walking behind bakery shelves');
+assert(reached.has('30,86'), 'Closing Bakery must preserve Produce access');
+for(const type of ['bakeryFascia']){
+  const fixture=map.props.find(p=>p.type===type);
+  assert.equal(fixture.rotation,-90, 'Bakery frontage must face the east member aisle');
+  assert(fixture.x>=27, 'Bakery frontage is hidden away from member aisle');
+}
+for(let y=36;y<=58;y++)assert.equal(map.tiles[y][17], y===51||y===52?'M':y>=54?'h':'Z', 'Deli must occupy the marked bay beside Dairy');
+for(let x=18;x<=27;x++)assert.equal(map.tiles[44][x], '.', 'Crossed-out Deli divider must be removed');
+assert(reached.has('23,38'), 'Deli entrance must connect to its north bay');
+for(const y of [...Array.from({length:14},(_,i)=>36+i),52,53]){
+  assert.equal(map.tiles[y][28],'j','Deli window / case must form one column');
+  assert.notEqual(map.tiles[y][27],'N','Separate inner case must be removed');
+}
+assert(map.props.some(p=>p.type==='whiteStaffDoor'&&p.x===28&&p.y===50&&p.rotation===-90),'Deli entrance needs a white member-facing door');
+
+const rotisserieSign=map.props.find(p=>p.type==='rotisserieFascia');
+assert.equal(rotisserieSign.x,28,'Rotisserie sign must be mounted on the frontage wall');
+assert.equal(rotisserieSign.rotation,-90);
+assert(reached.has('30,56'),'Rotisserie frontage must have a clear member approach');
+
+for(let x=18;x<=27;x++)assert.equal(map.tiles[54][x], x===25||x===26?'M':'h', 'Rotisserie must form the marked small Deli room');
+
+// Bakery stock is visible over a low, solid counter rather than a white wall.
+for(let x=4;x<=27;x++)assert.equal(map.tiles[85][x], 'G', 'Bakery south frontage must be low pastry displays');
+// Produce's south face uses low fresh-produce bins, with walkable gaps.
+for(let x=29;x<=45;x++)assert.notEqual(map.tiles[85][x], 'Z', 'Produce south wall hides stock');
+for(const x of [30,33,37,41])assert(reached.has(x+',85'), 'Produce bins block a south approach');
+for(let y=75;y<=78;y++){
+  assert(reached.has('29,'+y), 'Bakery display must face an accessible member aisle');
+  assert.equal(map.tiles[y][28], 'G', 'Bakery display frontage must remain visible and solid');
+}
+
+
 for(const c of Game.characters){
   const direct=reached.has(c.position.x+','+c.position.y);
   const acrossCounter=c.interactionRange && queue.some(([x,y])=>Math.hypot((x-c.position.x)*32,(y-c.position.y)*32)<c.interactionRange);
