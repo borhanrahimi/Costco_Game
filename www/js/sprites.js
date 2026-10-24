@@ -184,6 +184,27 @@ window.Sprites = (() => {
       } else { r(9, 6, 3, 1, skinL); }
       if (L.cap){ r(7, 1, 12, 5, L.cap); r(17, 5, 5, 2, shade(L.cap, .75)); }
     }
+    if(L.thickBrows && dir!=="up"){
+      if(side){r(14,8,4,2,hairD);r(17,9,2,1,hairD);}
+      else{r(6,8,5,2,hairD);r(14,8,4,2,hairD);}
+    }
+    if(L.cowboyBoots){
+      // Tall leather shafts, stitched seams, pointed toes and dark heels.
+      if(side){
+        for(const offset of [sw,-sw]){
+          r(10+offset,36,5,8,shoe);r(11+offset,37,1,5,shade(shoe,1.3));
+          r(13+offset,42,6,2,shoe);r(18+offset,43,2,1,shade(shoe,1.1));
+          r(10+offset,44,3,2,"#423024");r(13+offset,44,6,1,"#573a28");
+        }
+      }else{
+        for(const x of [7,13]){
+          const lift=x===7?(sw>0?1:0):(sw<0?1:0);
+          r(x,36-lift,5,8,shoe);r(x+1,37-lift,1,5,shade(shoe,1.3));
+          r(x-1,42-lift,6,2,shoe);r(x-1,44-lift,6,1,"#423024");
+          r(x+2,38-lift,2,1,shade(shoe,.7));
+        }
+      }
+    }
     if(L.sideSwept){
       // Neatly tapered sides and a longer top combed across the forehead.
       r(6,1,12,4,hair);r(7,0,9,2,hair);

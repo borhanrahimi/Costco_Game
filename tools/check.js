@@ -135,6 +135,11 @@ for(const n of debug.people){
   if(n.name==='Carlos')assert(n.madT>0,'Carlos must get angry as soon as conversation starts');
   for(let i=0;i<n.lines.length*2;i++) debug.talk();
   assert(element('dialog').hidden,`Cannot close conversation with ${n.name}`);
+  if(n.name==='Amanda'){
+    assert.equal(debug.thought,"TORTA!",'Amanda conversation must trigger first thought');
+    debug.step(4.1);
+    assert.equal(debug.thought,"Idk how I did TORTA!",'Follow-up must appear after TORTA');
+  }
   element('keepBtn').onclick();
 }
 // Erik uses his callout pool in direct conversations, with his photo visible.

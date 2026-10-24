@@ -69,7 +69,7 @@
   let player, npcs, stations, state = "title", talkedCount = 0, doneShown = false, hotdogs = 0, boostT = 0, boostKind = null;
   // Preston's random thoughts: a bubble over his head every so often.
   const THOUGHT_SHOW = 4, thoughtGap = () => 8 + Math.random() * 10;
-  let thought = null, thoughtT = 5, lastThought = -1;
+  let thought = null, thoughtT = 5, lastThought = -1, queuedThoughts = [];
   let cold = false, coldTime = 0;
   let banterPhase="waiting", banterTime=4;
   const coldThoughts = [
@@ -94,9 +94,12 @@
         nameTag: c.nameTag !== false, angry: !!c.angry, wander: !!c.wander, voice: c.voice || {},
         dashSeconds: c.dashSeconds || 0, dashRoute: null, dashBubbleT: 0, patrol: c.patrol || null, patrolIndex: 1, patrolPause: c.patrolPause || 0, patrolWait: c.patrolPause || 0, banter: c.banter || null, bubble: null, walkSpeed: c.walkSpeed || 56,
         randomCalloutConversation: !!c.randomCalloutConversation,
+        calloutRange: c.calloutRange || Infinity,
         callouts: c.callouts || null, calloutWait: 5+Math.random()*5,
         calloutTime: 0, lastCallout: -1,
         interactionRange: c.interactionRange || TALK_RANGE,
+        conversationVariants: c.conversationVariants || null, lastConversation: -1,
+        afterConversationThought: c.afterConversationThought || null,
         lines: readConversation(c),
         px, py, hx: px, hy: py, dir: pos.facing || "down",
         talked: false, anim: 0, moving: false, wt: 1 + Math.random() * 3, wdx: 0, wdy: 0, madT: 0,
@@ -108,7 +111,7 @@
                px: (pos.x + .5) * TS, py: (pos.y + 1) * TS, portrait: st.portrait || null, look: {} };
     });
     hotdogs = 0; boostT = 0; boostKind = null; $("dogStat").hidden = true;
-    thought = null; thoughtT = 5;
+    thought = null; thoughtT = 5;queuedThoughts=[];
     vehicles = Game.vehicles.map(v => {
       const pos = v.position || { x: 2, y: 2 };
       return { ...v, px: (pos.x + .5) * TS, py: (pos.y + 1) * TS - 2, dir: pos.facing || "up" };
@@ -232,12 +235,18 @@
     const n = nearestNpc(), v = nearestVehicle();
     if (v && (!n || Math.hypot(v.px - player.x, v.py - player.y) < Math.hypot(n.px - player.x, n.py - player.y))){ hopOn(v); return; }
     if (!n) return;
+    if(n.conversationVariants?.length){
+      let index=Math.floor(Math.random()*n.conversationVariants.length);
+      if(index===n.lastConversation && n.conversationVariants.length>1)index=(index+1)%n.conversationVariants.length;
+      n.lastConversation=index;n.lines=readConversation({name:n.name,conversation:n.conversationVariants[index]});
+    }
     if(n.randomCalloutConversation && n.callouts?.length){
       let index=Math.floor(Math.random()*n.callouts.length);
       if(index===n.lastCallout && n.callouts.length>1)index=(index+1)%n.callouts.length;
       n.lastCallout=index;n.lines=[{who:n.name,text:n.callouts[index]}];
       n.bubble=null;n.calloutTime=0;n.calloutWait=8+Math.random()*8;
     }
+    queuedThoughts=[];
     talk.who = n; talk.idx = 0;
     faceToward(n, player.x, player.y);
     faceToward(player, n.px, n.py);
@@ -288,6 +297,10 @@
     $("dialog").hidden = true;
     const who = talk.who;
     talk.who = null;
+    if(who?.afterConversationThought){
+      queuedThoughts=Array.isArray(who.afterConversationThought)?[...who.afterConversationThought]:[who.afterConversationThought];
+      thought=queuedThoughts.shift();thoughtT=THOUGHT_SHOW;
+    }
     if (who && who.isStation && who.action === "hotdog"){
       hotdogs++;
       $("dogs").textContent = hotdogs; $("dogStat").hidden = false;
@@ -426,6 +439,7 @@
       player.y-2 >= room.y*TS && player.y-2 < (room.y+room.h)*TS);
     coldTime = cold ? coldTime + dt : 0;
     if(cold !== wasCold){
+      queuedThoughts=[];
       thought = cold ? coldThoughts[0] : null;
       thoughtT = cold ? THOUGHT_SHOW : thoughtGap();
       if(cold && !talk.who) toast(`${P.name}: "${coldThoughts[0]}"`);
@@ -433,7 +447,7 @@
     const thoughts = cold ? coldThoughts : (P.thoughts || []);
     if (talk.who) thought = null;
     else if (thoughts.length && (thoughtT -= dt) <= 0){
-      if (thought){ thought = null; thoughtT = thoughtGap(); }
+      if (thought){ thought = queuedThoughts.shift() || null; thoughtT = thought ? THOUGHT_SHOW : thoughtGap(); }
       else {
         let i = Math.floor(Math.random() * thoughts.length);
         if (thoughts.length > 1 && i === lastThought) i = (i + 1) % thoughts.length;
@@ -455,7 +469,9 @@
       }
       if(n.banterActor)continue;
       if(n.callouts && n.callouts.length){
-        if(talk.who){
+        if(Math.hypot(n.px-player.x,n.py-player.y)>n.calloutRange){
+          n.bubble=null;n.calloutTime=0;
+        }else if(talk.who){
           n.bubble=null;n.calloutTime=0;
         }else if(n.calloutTime>0){
           n.calloutTime=Math.max(0,n.calloutTime-dt);
