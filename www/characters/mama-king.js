@@ -14,10 +14,11 @@
       {who:"Preston",text:"Okay, okay. One hug. No pictures."},
     ],
     [
-      {who:"Mama King",text:"I only came in for milk. Why is my cart already full?"},
-      {who:"Preston",text:"You passed the samples, didn't you?"},
-      {who:"Mama King",text:"The nice lady gave me a little cheese. I had to buy the whole tray."},
-      {who:"Preston",text:"That's how they get you, Mama King."},
+      {who:"Mama King",text:"where are my Niggas?"},
+      {who:"Preston",text:"Your princess are at the front end! "},
+      {who:"Mama King",text:"Ok! I'll go to say hi to them"},
+      {who:"Preston",text:"Ok Mom! Tell Borhan that he's bold!"},
+      {who: "Mama King", text:"Ni*gga..."}
     ],
   ];
   Game.addCharacter({
