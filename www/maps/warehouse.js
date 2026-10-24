@@ -573,14 +573,44 @@
 
 
 
+  // Meat's public frontage: glass into production, refrigerated cuts outside.
+  // Each sealed module sits on a masonry plinth along the member aisle.
+  const meatFrontRows=Array.from({length:14},(_,i)=>60+i);
+  for(const y of meatFrontRows){
+    back[y][28]="j";
+    if(back[y][27]==="N")back[y][27]=".";
+  }
+
   // West-wall entrance near the south end, followed by sinks toward the fridge.
   backFill(17,51,1,2,"M");
   // Replace the short counters with two long stainless prep benches and
   // a dedicated double-basin sink, leaving the east-side door route open.
   backFill(20,48,5,1,".");backFill(22,52,3,1,".");back[53][19]=".";
+  backFill(13,65,6,1,".");
+  backFill(13,69,6,1,".");
+  backFill(23,62,3,1,".");backFill(23,69,3,1,".");
+  // North-wall connection beside the west sinks into the adjoining room.
+  backFill(6,59,2,1,"M");
+  // White east-side exit at the Bakery end of Meat.
+  backFill(28,72,1,3,"M");
+  // Shared stock cooler west of Deli and directly north of Meat.
+  for(let y=45;y<=58;y++)for(let x=4;x<=16;x++)
+    if(back[y][x]===".")back[y][x]="S";
+  layout.frontSoundArea={x:94,y:30,w:18,h:32};
+  layout.coldRooms=[{x:4,y:45,w:13,h:14}];
   layout.tiles=back.map(row=>row.join(""));
   layout.props.push(
+    ...[46,50,54].flatMap(y=>[5,10,14].map((x,i)=>({type:i===1?"coolerProduceBoxes":"coolerMeatBoxes",x,y}))),
+    {type:"stockCoolerUnit",x:10,y:45},
     ...deliFrontRows.map(y=>({type:"deliWindowCase",x:28,y,solid:false})),
+    ...meatFrontRows.filter(y=>y<72).map(y=>({type:"meatWindowCase",x:28,y,solid:false})),
+    {type:"meatFascia",x:28,y:60,rotation:-90,solid:false},
+    ...[65,69].map(y=>({type:"meatPrepTable",x:13,y})),
+    {type:"meatWrapper",x:23,y:62},
+    {type:"meatBandSaw",x:6,y:66},
+    {type:"meatGrinder",x:6,y:70},
+    // Double-basin sinks along Meat's west wall.
+    ...[60,63,70].map(y=>({type:"deliPrepSink",x:4,y,rotation:-90})),
     {type:"whiteStaffDoor",x:28,y:50,rotation:-90,solid:false},
     {type:"whiteStaffDoor",x:25,y:54,solid:false},
     {type:"whiteStaffDoor",x:26,y:59,solid:false},
@@ -597,7 +627,8 @@
     {type:"leftoverFridge",x:18,y:36},
     {type:"rotisserieHotCase",x:28,y:55,rotation:-90,solid:false},
     {type:"rotisserieFascia",x:28,y:54,rotation:-90,solid:false},
-    ...[66,69].map(y=>({type:"meatShelf",x:4,y})),
+    {type:"whiteStaffDoor",x:6,y:59,solid:false},
+    {type:"whiteStaffDoor",x:28,y:72,rotation:-90,solid:false},
     // Photo reference: red Kirkland fascia over stainless prep space,
     // rolling tray racks, and continuous clamshell-covered pastry tables.
     {type:"bakeryFascia",x:28,y:73,rotation:-90,solid:false},
@@ -613,7 +644,6 @@
   layout.signs.push(
     {text:"DELI",x:23,y:35,kind:"deli"},
 
-    {text:"MEAT",x:23,y:59,kind:"meat"},
 
   );
   layout.floorLines=layout.floorLines.filter(line=>line.x>=120);

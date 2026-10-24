@@ -42,8 +42,25 @@ window.Sound = (() => {
   // Electric forklift: just the beep-beep while it moves.
   const backupBeep    = () => beep(1050, .22, "square", .02);
 
+  // Two nasal cartoon "mig mig" notes, scheduled together for a crisp call.
+  function migMig(){
+    if(!actx)return;
+    for(const delay of [0,.19]){
+      const t=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+      o.type="sawtooth";o.frequency.setValueAtTime(750,t);
+      o.frequency.exponentialRampToValueAtTime(1050,t+.025);
+      o.frequency.setValueAtTime(1050,t+.085);
+      o.frequency.exponentialRampToValueAtTime(800,t+.13);
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.025,t+.015);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.13);
+      const nasal=actx.createBiquadFilter();nasal.type="bandpass";
+      nasal.frequency.value=1600;nasal.Q.value=2.5;
+      o.connect(nasal).connect(g).connect(actx.destination);o.start(t);o.stop(t+.14);
+    }
+  }
+
   const talkStart = () => { beep(660, 0.06); setTimeout(() => beep(880, 0.06), 60); };
   const nextLine  = () => beep(780, 0.05);
 
-  return { unlock, beep, voice, playFile, stopFile, talkStart, nextLine, backupBeep };
+  return { unlock, beep, voice, playFile, stopFile, talkStart, nextLine, backupBeep, migMig };
 })();

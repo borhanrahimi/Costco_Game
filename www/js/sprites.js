@@ -184,6 +184,70 @@ window.Sprites = (() => {
       } else { r(9, 6, 3, 1, skinL); }
       if (L.cap){ r(7, 1, 12, 5, L.cap); r(17, 5, 5, 2, shade(L.cap, .75)); }
     }
+    if(L.sideSwept){
+      // Neatly tapered sides and a longer top combed across the forehead.
+      r(6,1,12,4,hair);r(7,0,9,2,hair);
+      if(dir!=="up"){
+        r(6,3,10,3,hair);r(6,5,7,1,hair);r(6,6,3,1,hair);
+        r(15,3,2,2,hairD);r(17,3,1,5,hairD);
+        r(7,2,8,1,hairL);r(6,4,6,1,shade(hair,1.2));
+      }else{r(7,3,9,1,hairL);r(6,12,12,3,shade(hair,.85));}
+    }
+    if(L.friendlySmile && dir!=="up"){
+      const x=side?14:8;
+      r(x,14,side?5:9,2,"#a46a5a");r(x+1,14,side?3:7,1,"#fff3e4");
+      r(x+1,16,side?3:7,1,skinD);
+    }
+    if(L.collared && dir!=="up"){
+      r(7,18,4,3,shade(shirt,1.15));r(14,18,4,3,shade(shirt,.8));
+      r(10,20,1,2,shade(shirt,1.2));r(14,20,1,2,shade(shirt,1.15));
+    }
+    if(L.buzzCut){
+      // Close-cropped scalp and dark stubble, rather than the default full hair.
+      r(5,0,14,7,skin);r(6,1,12,3,hair);
+      for(let x=6;x<18;x+=2)r(x,4,1,1,hairD);
+      if(dir==="up"){r(6,5,12,8,hair);r(8,13,8,2,hairD);}
+    }
+    if(L.mischievousGrin && dir!=="up"){
+      const x=side?14:8;
+      r(x,14,side?5:9,3,"#784c3d");r(x+1,14,side?3:7,2,"#fff1d7");
+      r(x+2,14,1,2,"#a89075");
+      if(!side){r(7,8,3,1,hairD);r(14,8,3,1,hairD);}
+    }
+    if(L.gesturing){
+      // Raised hand and an emphatic pointing finger during his order.
+      r(20,20,3,6,top);r(20,16,3,6,skin);r(21,13,2,5,skin);
+      r(20,18,4,3,skin);r(21,14,1,2,skinL);
+    }
+    if(L.gesturing && L.theatricalBoss){
+      // Alternate a pinched finger-and-thumb circle, two open palms and
+      // a chopping hand. A pursed mouth punctuates the supervisor's order.
+      if(dir!=="up"){
+        const mx=side?17:11;
+        r(mx-1,14,4,3,skin);r(mx,15,3,2,"#a96954");r(mx+1,15,1,1,"#633f35");
+      }
+      if(L.bossPose===0){
+        r(19,17,5,5,skin);r(20,18,2,2,top);
+        r(20,14,1,4,skin);r(22,13,1,5,skin);r(23,15,1,4,skin);
+      }else if(L.bossPose===1){
+        for(const x of [0,20]){
+          r(x,22,4,5,top);r(x,16,4,7,skin);r(x+1,14,2,4,skin);
+          r(x+1,18,1,3,skinD);
+        }
+      }else{
+        r(19,21,4,5,top);r(20,16,3,7,skin);r(20,14,3,3,skinL);
+        r(1,24,4,5,top);r(0,24,3,3,skin);
+      }
+    }
+    if(L.neckerchief){
+      r(7,18,11,2,L.neckerchief);r(11,20,4,5,L.neckerchief);
+      if(side){r(3,19,8,2,L.neckerchief);r(2,20,5,2,L.neckerchief);}
+    }
+    if(L.sombrero){
+      r(2,5,21,3,shade(L.sombrero,.8));r(1,4,22,2,L.sombrero);
+      r(7,1,11,4,L.sombrero);r(9,0,7,2,shade(L.sombrero,1.15));
+      r(7,4,11,1,"#bc5736");
+    }
     return c;
   }
 
@@ -192,7 +256,8 @@ window.Sprites = (() => {
     const key = dir + frame + JSON.stringify(L);
     let img = cache.get(key);
     if (!img){ img = build(dir, frame, L); cache.set(key, img); }
-    g.drawImage(img, Math.round(fx) - 12, Math.round(fy) - 46);
+    const sx=L.widthScale || 1, sy=L.heightScale || 1;
+    g.drawImage(img, Math.round(fx)-12*sx, Math.round(fy)-46*sy, W*sx, H*sy);
   }
 
   function nameTag(g, text, x, y, color = "#d8352a"){

@@ -70,12 +70,18 @@
   // Preston's random thoughts: a bubble over his head every so often.
   const THOUGHT_SHOW = 4, thoughtGap = () => 8 + Math.random() * 10;
   let thought = null, thoughtT = 5, lastThought = -1;
+  let cold = false, coldTime = 0;
+  let banterPhase="waiting", banterTime=4;
+  const coldThoughts = [
+    "it's cold NIGGA!!!",
+  ];
   // Vehicles Preston can drive. While driving, the forklift rides on the player.
   const OPPOSITE = { up: "down", down: "up", left: "right", right: "left" };
   let vehicles = [], driving = null, reversing = false, beepT = 0;
   const cam = { x: 0, y: 0 };
 
   function resetGame(saved = null){
+    cold = false; coldTime = 0;banterPhase="waiting";banterTime=4;
     const st = M.start || { x: 2, y: 2, facing: "down" };
     player = { x: (st.x + .5) * TS, y: (st.y + 1) * TS - 2, dir: st.facing || "up", anim: 0, moving: false };
     npcs = Game.characters.map((c, i) => {
@@ -86,6 +92,10 @@
         id: i, name: c.name, role: c.role || "", look: { ...Outfit.staff, ...(c.look || {}) }, portrait: c.portrait || null,
         since: c.employeeSince || null,
         nameTag: c.nameTag !== false, angry: !!c.angry, wander: !!c.wander, voice: c.voice || {},
+        dashSeconds: c.dashSeconds || 0, dashRoute: null, dashBubbleT: 0, patrol: c.patrol || null, patrolIndex: 1, patrolPause: c.patrolPause || 0, patrolWait: c.patrolPause || 0, banter: c.banter || null, bubble: null, walkSpeed: c.walkSpeed || 56,
+        randomCalloutConversation: !!c.randomCalloutConversation,
+        callouts: c.callouts || null, calloutWait: 5+Math.random()*5,
+        calloutTime: 0, lastCallout: -1,
         interactionRange: c.interactionRange || TALK_RANGE,
         lines: readConversation(c),
         px, py, hx: px, hy: py, dir: pos.facing || "down",
@@ -191,6 +201,7 @@
   }
 
   function showLine(){
+    if(talk.who.angry)talk.who.madT=2;
     const line = curLine(), isPlayer = line.who === P.name;
     $("dName").textContent = line.who;
     $("dName").classList.toggle("player", isPlayer);
@@ -221,6 +232,12 @@
     const n = nearestNpc(), v = nearestVehicle();
     if (v && (!n || Math.hypot(v.px - player.x, v.py - player.y) < Math.hypot(n.px - player.x, n.py - player.y))){ hopOn(v); return; }
     if (!n) return;
+    if(n.randomCalloutConversation && n.callouts?.length){
+      let index=Math.floor(Math.random()*n.callouts.length);
+      if(index===n.lastCallout && n.callouts.length>1)index=(index+1)%n.callouts.length;
+      n.lastCallout=index;n.lines=[{who:n.name,text:n.callouts[index]}];
+      n.bubble=null;n.calloutTime=0;n.calloutWait=8+Math.random()*8;
+    }
     talk.who = n; talk.idx = 0;
     faceToward(n, player.x, player.y);
     faceToward(player, n.px, n.py);
@@ -293,6 +310,91 @@
     saveProgress();
   }
 
+  // Route each dash through open floor so even a one-second run respects walls.
+  function dashRoute(n,target){
+    const sx=Math.floor(n.px/TS),sy=Math.floor((n.py-2)/TS);
+    const queue=[[sx,sy]],previous=new Map([[sx+","+sy,null]]);
+    for(let i=0;i<queue.length;i++){
+      const [x,y]=queue[i];
+      if(x===target.x && y===target.y){
+        const route=[];let key=x+","+y;
+        while(previous.get(key)!==null){
+          const [rx,ry]=key.split(",").map(Number);route.push({x:(rx+.5)*TS,y:(ry+1)*TS-2});key=previous.get(key);
+        }
+        return route.reverse();
+      }
+      for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){
+        const nx=x+dx,ny=y+dy,key=nx+","+ny;
+        if(nx<0||ny<0||nx>=MW||ny>=MH||previous.has(key)||blocked((nx+.5)*TS,(ny+1)*TS-2,n))continue;
+        previous.set(key,x+","+y);queue.push([nx,ny]);
+      }
+    }
+    return null;
+  }
+
+  function updateDash(n,dt){
+    n.dashBubbleT=Math.max(0,n.dashBubbleT-dt);
+    n.bubble=n.dashBubbleT>0?"Mig mig!":null;
+    n.moving=false;
+    if(n.patrolWait>0){n.patrolWait=Math.max(0,n.patrolWait-dt);return;}
+    if(!n.dashRoute){
+      n.dashRoute=dashRoute(n,n.patrol[n.patrolIndex]);
+      if(!n.dashRoute || !n.dashRoute.length){n.dashRoute=null;n.patrolWait=1;return;}
+      n.dashSpeed=n.dashRoute.length*TS/n.dashSeconds;
+      n.dashBubbleT=.8;n.bubble="Mig mig!";
+      const front=M.frontSoundArea;
+      const inFront=(x,y)=>front && x>=front.x*TS && x<(front.x+front.w)*TS &&
+        y>=front.y*TS && y<(front.y+front.h)*TS;
+      if(inFront(player.x,player.y) && inFront(n.px,n.py))Sound.migMig();
+    }
+    let budget=n.dashSpeed*dt;
+    while(budget>0 && n.dashRoute.length){
+      const target=n.dashRoute[0],dx=target.x-n.px,dy=target.y-n.py,d=Math.hypot(dx,dy);
+      if(d<.01){n.dashRoute.shift();continue;}
+      const travel=Math.min(budget,d),bx=n.px,by=n.py;
+      n.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");
+      const moved=moveEntity(n,dx/d*travel/dt,dy/d*travel/dt,dt);
+      const actual=Math.hypot(n.px-bx,n.py-by);n.anim+=actual;n.moving ||= actual>0;budget-=travel;
+      if(!moved){n.dashRoute=null;n.patrolWait=.5;return;}
+      if(travel>=d)n.dashRoute.shift();
+    }
+    if(!n.dashRoute.length){n.dashRoute=null;n.patrolIndex=(n.patrolIndex+1)%n.patrol.length;n.patrolWait=n.patrolPause;n.moving=false;}
+  }
+
+  // Cashiers meet in the gap between their registers, trade lines, then return.
+  function updateBanter(dt){
+    const a=npcs.find(n=>n.banter), b=a && npcs.find(n=>n.name===a.banter.partner);
+    if(!a || !b)return;
+    a.banterActor=b.banterActor=true;
+    a.moving=b.moving=false;a.bubble=b.bubble=null;
+    if(talk.who===a || talk.who===b)return;
+    const walkTo=(n,x,y)=>{
+      const dx=x-n.px,dy=y-n.py,d=Math.hypot(dx,dy);
+      if(d<1)return true;
+      n.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");
+      const bx=n.px,by=n.py,s=Math.min(48,d/dt);
+      moveEntity(n,dx/d*s,dy/d*s,dt);
+      n.anim+=Math.hypot(n.px-bx,n.py-by);n.moving=n.px!==bx||n.py!==by;
+      return Math.hypot(x-n.px,y-n.py)<1;
+    };
+    if(banterPhase==="waiting"){
+      banterTime-=dt;if(banterTime<=0)banterPhase="approach";
+    }else if(banterPhase==="approach"){
+      const x=(a.hx+b.hx)/2,y=(a.hy+b.hy)/2;
+      const arrivedA=walkTo(a,x,y+13),arrivedB=walkTo(b,x,y-13);
+      if(arrivedA && arrivedB){banterPhase="speaking";banterTime=0;}
+    }else if(banterPhase==="speaking"){
+      faceToward(a,b.px,b.py);faceToward(b,a.px,a.py);
+      banterTime+=dt;
+      if(banterTime<3)a.bubble=a.banter.line;
+      else if(banterTime<6)b.bubble=a.banter.reply;
+      else banterPhase="returning";
+    }else{
+      const arrivedA=walkTo(a,a.hx,a.hy),arrivedB=walkTo(b,b.hx,b.hy);
+      if(arrivedA && arrivedB){banterPhase="waiting";banterTime=12;}
+    }
+  }
+
   // ---------------------------------------------------------------- update
   function step(dt){
     const k = Input.keys, st = Input.stick;
@@ -318,7 +420,17 @@
       player.anim += Math.hypot(player.x - bx, player.y - by);
     }
 
-    const thoughts = P.thoughts || [];
+    const wasCold = cold;
+    cold = (M.coldRooms || []).some(room =>
+      player.x >= room.x*TS && player.x < (room.x+room.w)*TS &&
+      player.y-2 >= room.y*TS && player.y-2 < (room.y+room.h)*TS);
+    coldTime = cold ? coldTime + dt : 0;
+    if(cold !== wasCold){
+      thought = cold ? coldThoughts[0] : null;
+      thoughtT = cold ? THOUGHT_SHOW : thoughtGap();
+      if(cold && !talk.who) toast(`${P.name}: "${coldThoughts[0]}"`);
+    }
+    const thoughts = cold ? coldThoughts : (P.thoughts || []);
     if (talk.who) thought = null;
     else if (thoughts.length && (thoughtT -= dt) <= 0){
       if (thought){ thought = null; thoughtT = thoughtGap(); }
@@ -334,10 +446,45 @@
       else beepT = 0;
     }
     if (boostT > 0){ boostT -= dt; if (boostT <= 0){ boostT = 0; boostKind = null; } }
+    updateBanter(dt);
     for (const n of npcs){
-      if (n.angry){ if (n === talk.who) n.madT = 2; else if (n.madT > 0) n.madT -= dt; }
+      if(n.angry){
+        const conversing=n===talk.who || (talk.who && curLine().who===n.name) ||
+          (n.banterActor && banterPhase==="speaking");
+        n.madT=conversing?2:Math.max(0,n.madT-dt);
+      }
+      if(n.banterActor)continue;
+      if(n.callouts && n.callouts.length){
+        if(talk.who){
+          n.bubble=null;n.calloutTime=0;
+        }else if(n.calloutTime>0){
+          n.calloutTime=Math.max(0,n.calloutTime-dt);
+          if(n.calloutTime===0)n.bubble=null;
+        }else if((n.calloutWait-=dt)<=0){
+          let index=Math.floor(Math.random()*n.callouts.length);
+          if(index===n.lastCallout && n.callouts.length>1)index=(index+1)%n.callouts.length;
+          n.lastCallout=index;n.bubble=n.callouts[index];n.calloutTime=4;
+          n.calloutWait=8+Math.random()*8;
+          if(Math.hypot(n.px-player.x,n.py-player.y)<600)Sound.voice(n.voice);
+        }
+        if(n.calloutTime>0){n.moving=false;continue;}
+      }
       if (!n.wander || n === talk.who){ n.moving = false; continue; }
       if (Math.hypot(n.px - player.x, n.py - player.y) < 52){ n.moving = false; faceToward(n, player.x, player.y); continue; }
+      if(n.dashSeconds){updateDash(n,dt);continue;}
+      if(n.patrol && n.patrol.length>1){
+        if(n.patrolWait>0){n.patrolWait=Math.max(0,n.patrolWait-dt);n.moving=false;continue;}
+        const target=n.patrol[n.patrolIndex];
+        const dx=(target.x+.5)*TS-n.px, dy=(target.y+1)*TS-2-n.py;
+        const distance=Math.hypot(dx,dy);
+        if(distance<2){n.patrolIndex=(n.patrolIndex+1)%n.patrol.length;n.moving=false;n.patrolWait=n.patrolPause;continue;}
+        n.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");
+        const bx=n.px, by=n.py, speed=Math.min(n.walkSpeed,distance/dt);
+        const moved=moveEntity(n,dx/distance*speed,dy/distance*speed,dt);
+        n.anim+=Math.hypot(n.px-bx,n.py-by);n.moving=n.px!==bx||n.py!==by;
+        if(!moved)n.patrolIndex=(n.patrolIndex+1)%n.patrol.length;
+        continue;
+      }
       n.wt -= dt;
       if (n.wt <= 0){
         if (n.moving || Math.random() < .4){ n.moving = false; n.wt = 1.5 + Math.random()*2.5; }
@@ -354,7 +501,7 @@
       }
       if (n.moving){
         const bx = n.px, by = n.py;
-        if (!moveEntity(n, n.wdx*56, n.wdy*56, dt)){ n.moving = false; n.wt = 1; }
+        if (!moveEntity(n, n.wdx*n.walkSpeed, n.wdy*n.walkSpeed, dt)){ n.moving = false; n.wt = 1; }
         n.anim += Math.hypot(n.px - bx, n.py - by);
       }
     }
@@ -469,7 +616,14 @@
         if (e.angry && e.madT > 0){
           Sprites.person(ctx, e.px + Math.round(Math.sin(t*60)*2), e.py, e.dir, f, { ...e.look, skin: "#e0453a" });
           Sprites.steam(ctx, e.px, e.py, t);
-        } else Sprites.person(ctx, e.px, e.py, e.dir, f, e.look);
+        } else {
+          const speaking=e.look.commandGesture && (e===talk.who || e.calloutTime>0);
+          const sway=speaking?Math.sin(t*7)*1.2:0;
+          const pose=speaking && e.look.theatricalBoss?Math.floor(t*2)%3:0;
+          const look=speaking?{...e.look,gesturing:true,bossPose:pose}:e.look;
+          const bob=speaking && e.look.theatricalBoss?(pose===2?-1:0):0;
+          Sprites.person(ctx,e.px+sway,e.py+bob,e.dir,f,look);
+        }
       } else if (it.veh){
         Sprites.forklift(ctx, it.veh.px, it.veh.py, it.veh.dir, "back");
         Sprites.forklift(ctx, it.veh.px, it.veh.py, it.veh.dir, "front");
@@ -511,7 +665,8 @@
         ctx.fillStyle = "#16171c"; ctx.fillRect(x - 4, y - 10 + bob, 9, 18);
         ctx.fillStyle = "#f2b33d"; ctx.fillRect(x - 2, y - 8 + bob, 5, 8); ctx.fillRect(x - 2, y + 2 + bob, 5, 4);
       }
-      if (n.nameTag) Sprites.nameTag(ctx, n.name.toUpperCase(), x, y - 26);
+      if (n.nameTag) Sprites.nameTag(ctx, n.name.toUpperCase(), x, y - 26*(n.look.heightScale || 1));
+      if(n.bubble)Sprites.thought(ctx,n.bubble,x,y-38);
     }
     const nearV = state === "play" && !talk.who ? nearestVehicle() : null;
     if (nearV && !nearestNpc()) Sprites.nameTag(ctx, "HOP ON", Math.round(nearV.px), Math.round(nearV.py) - 86, "#c68a1f");
@@ -522,7 +677,15 @@
   function drawPlayer(t){
     const look = boostKind === "energy" && boostT > 0 ? { ...playerLook, bulky: true } : playerLook;
     if (!driving){
-      Sprites.person(ctx, player.x, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, look);
+      const shiver = cold ? Math.sin(coldTime*35)*.9 : 0;
+      Sprites.person(ctx, player.x+shiver, player.y, player.dir, player.moving ? Math.floor(player.anim/10) % 4 : 0, look);
+      if(cold){
+        // A little puff of breath fades as it drifts away from his face.
+        const phase = (coldTime % 2.4)/2.4;
+        ctx.save();ctx.globalAlpha = (1-phase)*.65;
+        ctx.fillStyle="#e2f6ff";ctx.beginPath();
+        ctx.ellipse(player.x+6+phase*12,player.y-36-phase*9,2+phase*6,1+phase*3,0,0,Math.PI*2);ctx.fill();ctx.restore();
+      }
       return;
     }
     // Forklift, seated Preston, then the front of the forklift with its flashing light.
@@ -649,6 +812,7 @@
   Game.debug = {
     teleport(x, y){ player.x = (x + .5) * TS; player.y = (y + 1) * TS - 2; cam.x = player.x - VW/2; cam.y = player.y - WORLD_VH/2; },
     where(){ return { x: Math.floor(player.x / TS), y: Math.floor((player.y - 2) / TS) }; },
+    step, get cold(){ return cold; }, get thought(){ return thought; },
     blocked, footprint, move: moveEntity, get vehicles(){ return vehicles; }, get driving(){ return driving; },
     get people(){ return npcs; }, get player(){ return player; }, get hotdogs(){ return hotdogs; }, talk: () => action(),
   };

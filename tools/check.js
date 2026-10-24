@@ -75,9 +75,10 @@ for(let x=4;x<=27;x++){
     if(x===17)assert.equal(map.tiles[y][x], 'h');
     else assert.notEqual(map.tiles[y][x], 'Z', 'Deli / Meat divider wastes floor space');
   }
-  assert.equal(map.tiles[59][x], x>=26?'M':x>=17?'h':'Z', 'Deli and Meat must share one wall with a connecting door');
+  assert.equal(map.tiles[59][x], x>=26||x===6||x===7?'M':x>=17?'h':'Z', 'Deli and Meat must share one wall with connecting doors');
 }
-for(let y=71;y<=74;y++)assert.equal(map.tiles[y][28], 'Z', 'Produce must join Meat with a white wall');
+for(let y=60;y<=73;y++)assert.equal(map.tiles[y][28], y>=72?'M':'j', 'Meat frontage must end with an east-side door near Bakery');
+assert.equal(map.tiles[74][28], 'M', 'Wall block beside the east Meat door must leave its opening visible');
 for(let x=4;x<=27;x++){
   for(const y of [71,72,73])assert.equal(map.tiles[y][x], '.', 'Meat / Bakery divider wastes floor space');
   assert.equal(map.tiles[74][x], 'Z', 'Meat and Bakery must share one wall');
@@ -131,9 +132,22 @@ element('startBtn').onclick();
 for(const n of debug.people){
   debug.teleport(Math.floor(n.px/32)-1,Math.floor(n.py/32));
   debug.talk(); assert(!element('dialog').hidden,`Cannot talk to ${n.name}`);
+  if(n.name==='Carlos')assert(n.madT>0,'Carlos must get angry as soon as conversation starts');
   for(let i=0;i<n.lines.length*2;i++) debug.talk();
   assert(element('dialog').hidden,`Cannot close conversation with ${n.name}`);
   element('keepBtn').onclick();
+}
+// Erik uses his callout pool in direct conversations, with his photo visible.
+const supervisor=debug.people.find(n=>n.name==='Erik');
+debug.teleport(Math.floor(supervisor.px/32)-1,Math.floor(supervisor.py/32));
+let previousQuote=supervisor.lines[0].text;
+for(let visit=0;visit<3;visit++){
+  debug.talk();
+  assert(supervisor.callouts.includes(supervisor.lines[0].text),'Erik must quote his callout pool to Preston');
+  assert.notEqual(supervisor.lines[0].text,previousQuote,'Erik should vary his direct replies');
+  assert.equal(element('dPortrait').hidden,false,'Erik portrait must appear with random dialogue');
+  previousQuote=supervisor.lines[0].text;
+  debug.talk();debug.talk();element('keepBtn').onclick();
 }
 const v=debug.vehicles[0];
 debug.teleport(Math.floor(v.px/32),Math.floor(v.py/32)+1);
@@ -172,6 +186,75 @@ new vm.Script(fs.readFileSync(path.join(www,'js/game.js'),'utf8')).runInContext(
 assert(Game.debug.driving,'Driving state not restored');
 assert(!Game.debug.blocked(Game.debug.player.x,Game.debug.player.y,Game.debug.player),'Restored rider is blocked');
 Input.keys.up=true; listeners.blur.forEach(fn=>fn());assert.equal(Input.keys.up,false,'Blur leaves movement active');
+// Omar runs both directions beside the registers and stops for conversation.
+const omar=Game.debug.people.find(n=>n.name==='Omar');
+assert(omar && omar.look.heightScale<.7,'Omar must be visibly short');
+Game.debug.teleport(90,60);
+const omarStartY=omar.py, directions=new Set();
+const carlos=Game.debug.people.find(n=>n.name==='Carlos'),borhan=Game.debug.people.find(n=>n.name==='Borhan');
+const banterSeen=new Set();let cashiersMoved=false, reachedBack=false, returnedToRegisters=false;
+assert.equal(omar.look.vest,"#d8352a",'Omar needs his Costco vest');
+Game.debug.step(1);
+assert.equal(omar.py,omarStartY,'Omar needs a pause before running');
+for(let i=0;i<1000;i++){
+  Game.debug.step(.02);directions.add(omar.dir);
+  for(const cashier of [carlos,borhan]){
+    if(cashier.bubble){
+      banterSeen.add(cashier.bubble);
+      assert(carlos.madT>0,'Carlos must stay angry throughout the cashier conversation');
+    }
+    assert(!Game.debug.blocked(cashier.px,cashier.py,cashier),'Cashier walked into a fixture or person');
+  }
+  if(Math.abs(omar.py-190)<1)reachedBack=true;
+  if(reachedBack && Math.abs(omar.py-omarStartY)<1)returnedToRegisters=true;
+  if(carlos.py!==carlos.hy && borhan.py!==borhan.hy)cashiersMoved=true;
+  assert(omar.py>=(5+1)*32-2 && omar.py<=(35+1)*32-2,'Omar left his store route');
+  assert(!Game.debug.blocked(omar.px,omar.py,omar),'Omar ran into a fixture');
+}
+assert(directions.has('up')&&directions.has('down'),'Omar must run back and forth');
+assert(reachedBack && returnedToRegisters,'Omar must dash to the back and return');
+assert(cashiersMoved,'Carlos and Borhan must walk toward each other');
+assert(banterSeen.has(carlos.banter.line)&&banterSeen.has(carlos.banter.reply),'Both cashiers need their ambient lines');
+Game.debug.player.x=omar.px-30;Game.debug.player.y=omar.py;
+const stoppedY=omar.py;Game.debug.step(.02);
+assert.equal(omar.py,stoppedY,'Omar must stop near Preston');
+assert.equal(omar.lines[0].text,"What's up kid?");
+assert.equal(omar.lines[1].text,"Whats up mihito?");
+// Erik calls out without interaction, uses the configured pool, and avoids repeats.
+const erik=Game.debug.people.find(n=>n.name==='Erik');
+Game.debug.teleport(90,60);
+erik.calloutTime=0;erik.calloutWait=0;Game.debug.step(.02);
+assert(erik.callouts.includes(erik.bubble),'Erik needs a random ambient quote');
+assert(!erik.moving,'Erik must pause to deliver his callout');
+const firstCallout=erik.bubble;
+Game.debug.step(4.1);assert.equal(erik.bubble,null,'Erik callout must clear');
+erik.calloutWait=0;Game.debug.step(.02);
+assert.notEqual(erik.bubble,firstCallout,'Erik must not repeat a callout immediately');
+// Omar's call is local to the front, never audible from elsewhere.
+const originalMigMig=sandbox.Sound.migMig;let migCalls=0;
+sandbox.Sound.migMig=()=>migCalls++;
+function startOmarDash(){
+  omar.px=omar.hx;omar.py=omar.hy;omar.dashRoute=null;omar.patrolIndex=1;omar.patrolWait=0;
+  Game.debug.step(.02);
+}
+Game.debug.teleport(94,35);startOmarDash();
+assert.equal(migCalls,1,'Omar call must be audible at the front');
+Game.debug.teleport(70,5);startOmarDash();
+assert.equal(migCalls,1,'Omar call must be silent away from the front');
+Game.debug.teleport(94,35);
+omar.px=74.5*32;omar.py=6*32-2;omar.dashRoute=null;omar.patrolIndex=0;omar.patrolWait=0;
+Game.debug.step(.02);
+assert.equal(migCalls,1,'Back-of-store departure must be silent at the front');
+sandbox.Sound.migMig=originalMigMig;
+// Entering the stock cooler triggers a complaint; leaving clears the cold state.
+Game.debug.teleport(7,58);Game.debug.step(.02);
+assert(Game.debug.cold, 'Preston must feel cold in the stock cooler');
+assert(Game.debug.thought && element('toast').textContent.includes(Game.debug.thought), 'Cooler entry needs a visible cold complaint');
+Game.debug.step(5);Game.debug.step(20);
+assert(Game.debug.thought, 'Staying in the cooler needs another complaint');
+Game.debug.teleport(10,60);Game.debug.step(.02);
+assert(!Game.debug.cold, 'Preston must warm up after leaving the cooler');
+assert.equal(Game.debug.thought,null,'Cold complaint must clear after leaving');
 let actions=0;Input.onAction=()=>actions++;
 listeners.keydown.forEach(fn=>fn({code:'Space',repeat:true,target:{tagName:'DIV'},preventDefault(){}}));
 assert.equal(actions,0,'Held action repeats');

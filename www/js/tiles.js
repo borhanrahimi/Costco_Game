@@ -683,6 +683,8 @@ window.Tiles = (() => {
   PROPS.rotisserieFascia = { w:6, h:1 };
   PROPS.whiteStaffDoor = { w:2, h:1 };
   PROPS.deliWindowCase = { w:1, h:1 };
+  PROPS.meatWindowCase = { w:1, h:1 };
+  PROPS.meatFascia = { w:6, h:1 };
   PROPS.deliPrepTable = { w:6, h:1 };
   PROPS.deliPrepSink = { w:3, h:1 };
   PROPS.packagingShelf = { w:3, h:1 };
@@ -690,6 +692,11 @@ window.Tiles = (() => {
   PROPS.cleanDishRack = { w:1, h:3 };
   PROPS.rotisserieBackdrop = { w:12, h:1 };
   PROPS.meatShelf = { w:3, h:1 };
+  PROPS.meatPrepTable = { w:6, h:1 };
+  PROPS.coolerMeatBoxes = { w:2, h:1 };
+  PROPS.coolerProduceBoxes = { w:2, h:1 };
+  PROPS.stockCoolerUnit = { w:3, h:1 };
+  for(const type of ["meatWrapper","meatBandSaw","meatGrinder"])PROPS[type]={w:2,h:2};
   PROPS.domesticShelf = { w:1, h:3 };
   PROPS.seasonalShelf = { w:1, h:3 };
   PROPS.refrigeratedShelf = { w:2, h:24 };
@@ -715,7 +722,7 @@ window.Tiles = (() => {
       if(!original) return null;
       // Keep these aisle racks within their one-tile width; rotating the
       // wall artwork otherwise turns its tall front into an oversized width.
-      const narrow=["groceryShelf","bakeryFascia","bakeryPastryTable","rotisserieHotCase","rotisserieFascia","rotisserieOven","whiteStaffDoor","deliPrepSink","deliPrepTable"].includes(type);
+      const narrow=["groceryShelf","meatFascia","bakeryFascia","bakeryPastryTable","rotisserieHotCase","rotisserieFascia","rotisserieOven","whiteStaffDoor","deliPrepSink","deliPrepTable"].includes(type);
       const rotated=canvas(narrow?TS:original.height,original.width,g=>{
         if(narrow) g.scale(TS/original.height,1);
         g.translate(0,original.width); g.rotate(-Math.PI/2); g.drawImage(original,0,0);
@@ -724,6 +731,40 @@ window.Tiles = (() => {
     }
     if (propCache.has(type)) return propCache.get(type);
     let img = null;
+    if(type === "coolerMeatBoxes" || type === "coolerProduceBoxes"){
+      img=canvas(64,76,(g,R)=>{
+        R(2,70,60,6,"rgba(0,0,0,.18)");
+        R(2,63,60,8,"#8f7450");R(4,64,56,2,"#c5a678");
+        for(const x of [5,28,51])R(x,68,8,4,"#584e40");
+        for(let row=0;row<3;row++)for(let col=0;col<2;col++){
+          const x=3+col*29,y=5+row*19;
+          R(x,y,28,20,"#a47b4d");R(x+1,y+1,26,17,"#bf9967");
+          R(x+1,y+1,26,3,"#d3b17e");R(x+12,y+1,4,17,"#dfc69a");
+          R(x+3,y+7,21,8,"#f0ecd9");
+          R(x+4,y+8,3,6,type==="coolerMeatBoxes"?"#a7474d":"#638648");
+          g.fillStyle="#4b544a";g.font="bold 4px Arial, sans-serif";
+          g.fillText(type==="coolerMeatBoxes"?"MEAT":"PRODUCE",x+8,y+12);
+          R(x+20,y+4,4,2,"#665239");
+        }
+      });
+    }
+    if(type === "stockCoolerUnit"){
+      img=canvas(96,74,(g,R)=>{
+        R(0,4,96,42,"#91aeb5");R(2,6,92,36,"#d3e1df");
+        for(const x of [23,57]){
+          R(x-13,10,27,27,"#748f99");
+          g.strokeStyle="#c3d7d8";g.lineWidth=2;g.beginPath();g.arc(x,23,11,0,Math.PI*2);g.stroke();
+          R(x-9,22,19,3,"#bed2d2");R(x-1,14,3,19,"#bed2d2");
+        }
+        R(77,13,15,11,"#254b50");g.fillStyle="#c3f2e3";g.font="bold 6px monospace";g.fillText("34 F",78,21);
+        R(5,42,86,4,"#5f818b");
+        // Cool air spilling below the evaporator.
+        for(const x of [17,44,70]){
+          R(x,49,16,3,"rgba(213,245,255,.45)");R(x+3,57,19,3,"rgba(213,245,255,.25)");
+        }
+        g.fillStyle="#dceff0";g.font="bold 7px Arial, sans-serif";g.textAlign="center";g.fillText("COLD STORAGE",48,71);
+      });
+    }
     if(type === "meatIslandCooler"){
       img=canvas(192,64,(g,R)=>{
         // Low open refrigerated island, with trays visible from above.
@@ -787,7 +828,7 @@ window.Tiles = (() => {
         R(5,83,182,3,"#536765");
       });
     }
-    if(type === "bakeryFascia" || type === "rotisserieFascia"){
+    if(type === "bakeryFascia" || type === "rotisserieFascia" || type === "meatFascia"){
       img=canvas(192,64,(g,R)=>{
         g.scale(192/576,1);
         R(0,0,576,53,"#c91f2b");R(0,1,576,2,"#f56664");
@@ -796,9 +837,9 @@ window.Tiles = (() => {
         g.textAlign="center";g.fillStyle="#fff9e7";
         g.font="bold 21px Arial, sans-serif";g.fillText("KIRKLAND",219,29);
         g.fillStyle="#e64a42";g.font="italic 13px cursive";g.fillText("Signature",219,42);
-        g.fillStyle="#253032";g.font="bold "+(type==="rotisserieFascia"?17:27)+"px Georgia, serif";g.fillText(type==="rotisserieFascia"?"ROTISSERIE":"BAKERY",382,36);
+        g.fillStyle="#253032";g.font="bold "+(type==="rotisserieFascia"?17:27)+"px Georgia, serif";g.fillText(type==="rotisserieFascia"?"ROTISSERIE":type==="meatFascia"?"MEAT":"BAKERY",382,36);
         g.fillStyle="#fff8e9";g.font="bold 17px Arial, sans-serif";
-        g.fillText(type==="rotisserieFascia"?"HOT":"CAKES",62,34);g.fillText(type==="rotisserieFascia"?"CHICKEN":"COOKIES",514,34);
+        g.fillText(type==="rotisserieFascia"?"HOT":type==="meatFascia"?"USDA":"CAKES",62,34);g.fillText(type==="rotisserieFascia"?"CHICKEN":type==="meatFascia"?"CHOICE":"COOKIES",514,34);
       });
     }
     if(type === "bakeryPastryTable"){
@@ -890,7 +931,7 @@ window.Tiles = (() => {
         R(5,108,9,4,"#304d52");R(50,108,9,4,"#304d52");
       });
     }
-    if(type === "deliPrepTable"){
+    if(type === "deliPrepTable" || type === "meatPrepTable"){
       img=canvas(192,62,(g,R)=>{
         R(3,56,189,6,"rgba(0,0,0,.18)");
         for(const x of [5,91,181]){R(x,28,5,29,"#8fa5a7");R(x,28,2,29,"#e0e9e2");}
@@ -900,10 +941,47 @@ window.Tiles = (() => {
         // Cutting boards, ingredient pans and a knife on the stainless surface.
         for(const x of [18,98]){
           R(x,10,45,15,"#f1eee0");R(x,24,45,2,"#b4bdac");
-          R(x+8,13,12,6,"#86a25b");R(x+24,15,10,5,"#cf9b68");
+          R(x+8,13,12,6,type==="meatPrepTable"?"#b95156":"#86a25b");R(x+24,15,10,5,type==="meatPrepTable"?"#d48b88":"#cf9b68");
           R(x+36,12,2,10,"#9aaeb0");R(x+36,20,2,5,"#344e4e");
         }
         for(const x of [72,157]){R(x,10,19,14,"#708b90");R(x+2,12,15,9,"#a9bd7c");R(x+2,12,15,1,"#ecf0dc");}
+      });
+    }
+    if(["meatWrapper","meatBandSaw","meatGrinder"].includes(type)){
+      img=canvas(64,96,(g,R)=>{
+        R(3,90,58,6,"rgba(0,0,0,.2)");
+        // Stainless cabinet, raised work surface and rubber feet.
+        R(5,49,54,39,"#8eaaaE");R(8,52,48,33,"#becdca");
+        R(9,54,2,29,"#edf2e9");R(32,54,1,29,"#879e9f");
+        R(0,43,64,9,"#dae3dc");R(1,43,62,2,"#f7f8ef");
+        R(7,87,7,5,"#344c50");R(50,87,7,5,"#344c50");
+        if(type==="meatWrapper"){
+          // Film roll feeds a broad wrapping bed and heated sealing strip.
+          R(7,17,4,26,"#718b90");R(53,17,4,26,"#718b90");
+          R(9,14,46,13,"#dce8e3");R(11,16,42,3,"#fffdf1");
+          R(10,26,44,18,"rgba(224,247,245,.55)");
+          R(15,32,33,10,"#f4eedf");R(18,33,24,6,"#bd6265");
+          R(6,45,51,3,"#bd6042");
+        }else if(type==="meatBandSaw"){
+          // Tall enclosed drive housing and thin vertical blade over the bed.
+          R(42,3,17,42,"#8da5a8");R(44,5,13,22,"#d7e0da");
+          R(17,3,37,9,"#c5d3ce");R(18,5,29,2,"#eef3e9");
+          R(21,12,1,31,"#f7f8f0");R(20,42,4,2,"#415c61");
+          R(6,34,12,7,"#b75a5e");R(8,34,8,1,"#edaaa0");
+          R(33,30,25,3,"#799398");
+        }else{
+          // Feed hopper, motor and horizontal grinder outlet with catch tray.
+          R(27,21,29,22,"#94acaf");R(30,23,23,15,"#c8d6d2");
+          for(let x=34;x<53;x+=4)R(x,26,1,10,"#6c898e");
+          R(29,8,23,7,"#dce4db");R(32,15,17,9,"#a8bfbd");
+          R(12,27,22,11,"#b8cbca");R(9,26,7,14,"#e0e8de");
+          for(const y of [29,33,37])R(10,y,3,1,"#455f63");
+          R(3,41,25,6,"#788f93");R(5,41,21,3,"#d99892");
+        }
+        R(42,56,5,4,"#439875");R(49,56,5,4,"#bf4549");
+        R(10,65,43,10,"#eeeede");g.fillStyle="#344f54";
+        g.font="bold 6px Arial, sans-serif";g.textAlign="center";
+        g.fillText({meatWrapper:"WRAP / SEAL",meatBandSaw:"BAND SAW",meatGrinder:"GRINDER"}[type],31,72);
       });
     }
     if(type === "deliPrepSink"){
@@ -918,6 +996,32 @@ window.Tiles = (() => {
         R(30,3,4,21,"#8ba8ac");R(31,2,22,4,"#e0e9df");R(50,4,4,12,"#a2bec0");
         R(76,23,11,13,"#e0eee0");R(79,19,5,5,"#519b9b");
         R(6,67,5,8,"#6a878c");R(85,67,5,8,"#6a878c");
+      });
+    }
+    if(type === "meatWindowCase"){
+      img=canvas(32,32,(g,R)=>{
+        // Stainless framed glass on the room side; bright strip lights,
+        // rolling tray racks and white cutting surfaces seen through it.
+        R(0,0,18,32,"#718488");R(2,2,14,28,"#354e55");
+        R(3,3,12,26,"#90aaad");R(4,4,10,2,"#f4ffff");
+        for(const y of [10,15,20,25]){R(5,y,8,1,"#e1e8e5");}
+        R(5,8,1,20,"#c8d5d4");R(12,8,1,20,"#c8d5d4");
+        R(3,3,2,25,"rgba(234,255,255,.36)");
+        R(16,0,2,32,"#e3e8e5");
+        // Member-facing refrigerated case on a substantial block base.
+        R(18,0,14,32,"#9ca9aa");R(20,1,10,30,"#354345");
+        for(let y=2;y<30;y+=9){
+          R(20,y,9,7,"#f4eee1");R(21,y+1,7,4,"#bb4a50");
+          R(22,y+1,1,3,"#eba8a0");R(25,y+2,2,1,"#edb0a6");
+          R(25,y+5,4,2,"#fffdf3");
+        }
+        R(19,0,2,32,"rgba(218,249,250,.4)");
+        R(29,0,1,32,"#e7eeeb");R(30,0,2,32,"#c7242d");
+        R(27,0,3,32,"rgba(211,239,242,.22)");
+        // Pale concrete blocks with staggered joints under the red case trim.
+        R(30,0,2,32,"#b9b9ae");
+        for(const y of [0,8,16,24]){R(30,y,2,1,"#7a837f");R(31,y+4,1,1,"#e3e3d6");}
+        R(0,0,30,1,"#eef2eb");R(0,31,30,1,"#5e7479");
       });
     }
     if(type === "deliWindowCase"){

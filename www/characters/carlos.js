@@ -30,5 +30,11 @@ Game.addCharacter({
 
   nameTag: true,
   wander: false,
+  banter: {
+    partner: "Borhan",
+    line: "Bald ass Nigga!",
+    reply: "Short ass Nigga!",
+    angry: true,
+  },
   angry: true,
 });
