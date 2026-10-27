@@ -1,6 +1,7 @@
 // characters/preston.js — THE MAIN CHARACTER (the one you control)
 // Matched to his photo: curly brown hair, round black glasses,
 // pink striped button-up shirt and his name badge.
+// princess
 
 Game.setPlayer({
   name: "Preston",
